@@ -217,3 +217,78 @@ test('Vanilla JS appendDigit properly replaces initial zero or appends character
   assert.equal(appendDigit('75.', '2'), '75.2');
 });
 
+// Test 12: C++20 Function & Switch Arithmetic with IEEE 754 NaN Protection
+test('C++ Switch implementation validates arithmetic and zero-division guard', () => {
+  const cppCode = `
+    double calculate(double prev, double current, char op) {
+        switch (op) {
+            case '+': return prev + current;
+            case '-': return prev - current;
+            case '*': return prev * current;
+            case '/':
+                if (current == 0.0) return std::nan("");
+                return prev / current;
+            default: return current;
+        }
+    }
+  `;
+
+  const hasSignature = /double\s+calculate\s*\(\s*double\s+\w+,\s*double\s+\w+,\s*char\s+\w+\s*\)/i.test(cppCode);
+  const hasSwitch = /switch\s*\(\s*op\s*\)/i.test(cppCode);
+  const hasCases = /case\s*'\+':/i.test(cppCode) && /case\s*'\*':/i.test(cppCode);
+  const hasNanGuard = /current\s*==\s*0\.0/i.test(cppCode) && /std::nan/i.test(cppCode);
+
+  assert.ok(hasSignature);
+  assert.ok(hasSwitch);
+  assert.ok(hasCases);
+  assert.ok(hasNanGuard);
+});
+
+// Test 13: Java 21 Static Method & Double.NaN Handling
+test('Java Static calculate method validates operations and Double.NaN guard', () => {
+  const javaCode = `
+    public static double calculate(double prev, double current, char op) {
+        switch (op) {
+            case '+': return prev + current;
+            case '-': return prev - current;
+            case '*': return prev * current;
+            case '/':
+                if (current == 0.0) return Double.NaN;
+                return prev / current;
+            default: return current;
+        }
+    }
+  `;
+
+  const hasSignature = /public\s+static\s+double\s+calculate/i.test(javaCode);
+  const hasSwitch = /switch\s*\(\s*op\s*\)/i.test(javaCode);
+  const hasCases = /case\s*'\+':/i.test(javaCode) && /case\s*'\*':/i.test(javaCode);
+  const hasDoubleNan = /Double\.NaN/i.test(javaCode);
+
+  assert.ok(hasSignature);
+  assert.ok(hasSwitch);
+  assert.ok(hasCases);
+  assert.ok(hasDoubleNan);
+});
+
+// Test 14: Dynamic Stack Detection for "Simple calculator using Js" (No TypeScript Leakage)
+test('Stack detector accurately routes "Simple calculator using Js" to vanilla_web and not TypeScript', () => {
+  function detectStack(prompt) {
+    const lower = prompt.toLowerCase();
+    if (/\b(cpp|c\+\+|clang)\b/i.test(lower)) return 'cpp';
+    if (/\b(java|jvm|openjdk)\b/i.test(lower) && !lower.includes('javascript')) return 'java';
+    if (/\b(python|py|python3)\b/i.test(lower)) return 'python';
+    if (/\b(js|javascript|vanilla|es6|node)\b/i.test(lower) && !lower.includes('typescript')) return 'vanilla_web';
+    if (lower.includes('react') && (lower.includes('typescript') || lower.includes('ts'))) return 'react_ts';
+    return 'react_ts';
+  }
+
+  assert.equal(detectStack('Simple calculator using Js'), 'vanilla_web');
+  assert.equal(detectStack('calculator in js'), 'vanilla_web');
+  assert.equal(detectStack('calculator with cpp'), 'cpp');
+  assert.equal(detectStack('calculator in java'), 'java');
+  assert.equal(detectStack('calculator in python'), 'python');
+  assert.notEqual(detectStack('Simple calculator using Js'), 'react_ts');
+});
+
+

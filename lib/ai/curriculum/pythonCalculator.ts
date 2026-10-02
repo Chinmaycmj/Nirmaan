@@ -131,10 +131,12 @@ def format_result(val):
       stepNumber: 1,
       title: 'Python Functions: Binary Arithmetic Engine',
       conceptId: 'python_functions',
-      conceptName: 'Python Functions & Conditionals',
+      conceptName: 'Python Functions & Error Handling',
       taskType: 'COMPLETE_CODE',
+      language: 'python',
       prompt: 'Implement `def calculate(prev, current, op):` in Python using `if/elif/else` statements for +, -, *, and /. Guard against division by zero by returning `float("nan")`.',
       contextExplanation: 'In Python, functions are first-class citizens. Writing pure arithmetic functions ensures deterministic results and prevents runtime ZeroDivisionError exceptions.',
+      realLifeExample: 'Think of a digital postage meter at the post office. When you place a package on the scale (`prev`) and enter destination weight units (`current`) with a shipping speed operator (`op`), the meter computes the exact postage rate (`return prev * rate`). If you accidentally enter 0 packages to divide bulk postage (`dividing by zero`), the meter LCD flashes "NaN / Invalid Parcel" rather than crashing the post office database!',
       targetFileId: 'calculator-py',
       initialCode: `def calculate(prev, current, op):
     # YOUR PYTHON CODE HERE

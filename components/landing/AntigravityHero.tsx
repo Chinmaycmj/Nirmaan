@@ -31,13 +31,25 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
 
   const quickPrompts = [
     {
-      title: 'Vanilla JS & CSS Modern Calculator',
+      title: 'Pure JS & Modern CSS Grid Calculator',
       tag: 'JavaScript + CSS',
-      desc: 'Native web standards: HTML5 keypad, modern CSS Grid layout, and pure ES6 DOM calculations without frameworks.',
-      prompt: 'Build me a simple calculator with vanilla JavaScript, CSS Grid and HTML5.',
+      desc: 'Native web standards: HTML5 keypad, modern CSS Grid layout, and pure ES6 DOM calculations without frameworks or TypeScript.',
+      prompt: 'Build me a simple calculator using Js and CSS.',
     },
     {
-      title: 'Python Arithmetic & Logic Engine',
+      title: 'C++20 High-Precision Engine',
+      tag: 'C++20 (g++)',
+      desc: 'Direct compilation with strict type safety, switch logic, and IEEE 754 division-by-zero nan protection.',
+      prompt: 'Build me a calculator using C++ with zero-division error handling.',
+    },
+    {
+      title: 'Java 21 Enterprise Calculator',
+      tag: 'Java (OpenJDK)',
+      desc: 'Static class methods, clean bytecode compilation, and Double.NaN arithmetic handling.',
+      prompt: 'Build me a calculator using Java with zero-division error handling.',
+    },
+    {
+      title: 'Python Arithmetic Engine',
       tag: 'Python 3',
       desc: 'Python terminal engine with pure functions, zero-division error handling, and interactive console runner.',
       prompt: 'Build me a calculator using Python with zero-division error handling.',
@@ -84,10 +96,18 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
   };
 
   return (
-    <div className="min-h-screen w-screen bg-[#07090e] text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white relative overflow-hidden font-sans">
-      {/* Background glow effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-b from-indigo-600/15 via-purple-600/10 to-transparent blur-[120px] pointer-events-none rounded-full" />
-      <div className="absolute -bottom-32 left-1/3 w-[600px] h-[300px] bg-indigo-900/10 blur-[140px] pointer-events-none" />
+    <div className="min-h-screen w-screen bg-[#030712] text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white relative overflow-hidden font-sans">
+      {/* Award-winning micro-dot canvas grid */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-40" 
+        style={{
+          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }} 
+      />
+      {/* Atmospheric glow effects */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-b from-indigo-600/15 via-purple-600/10 to-transparent blur-[140px] pointer-events-none rounded-full" />
+      <div className="absolute -bottom-32 left-1/3 w-[600px] h-[300px] bg-indigo-900/10 blur-[150px] pointer-events-none" />
 
       {/* Top Navigation */}
       <header className="h-16 px-6 md:px-12 flex items-center justify-between z-10 border-b border-slate-800/40 backdrop-blur-md">
@@ -193,10 +213,12 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
                   className="bg-transparent text-slate-300 font-medium focus:outline-none cursor-pointer text-xs"
                 >
                   <option value="auto" className="bg-slate-900 text-slate-200">Auto-detect from prompt</option>
-                  <option value="vanilla_web" className="bg-slate-900 text-slate-200">Vanilla JS + CSS + HTML5</option>
+                  <option value="vanilla_web" className="bg-slate-900 text-slate-200">Pure JavaScript + CSS + HTML5</option>
+                  <option value="cpp" className="bg-slate-900 text-slate-200">C++ 20 (g++ native)</option>
+                  <option value="java" className="bg-slate-900 text-slate-200">Java 21 (OpenJDK)</option>
+                  <option value="python" className="bg-slate-900 text-slate-200">Python 3 (Terminal)</option>
                   <option value="react_ts" className="bg-slate-900 text-slate-200">React 18 + TypeScript + Tailwind</option>
-                  <option value="react_css" className="bg-slate-900 text-slate-200">React + Custom CSS</option>
-                  <option value="python" className="bg-slate-900 text-slate-200">Python 3 (Console)</option>
+                  <option value="react_js" className="bg-slate-900 text-slate-200">React 18 + Pure JavaScript</option>
                 </select>
               </div>
             </div>

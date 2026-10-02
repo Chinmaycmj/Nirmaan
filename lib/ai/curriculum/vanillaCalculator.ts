@@ -447,6 +447,8 @@ if (equalsBtn) {
       taskType: 'COMPLETE_CODE',
       prompt: 'Configure `.keypad` using modern CSS Grid with 4 equal-width columns and a 12px gap between buttons.',
       contextExplanation: 'CSS Grid is the native standard for two-dimensional interfaces, allowing you to position rows and columns without external libraries or float hacks.',
+      realLifeExample: 'Think of an ice cube tray or an egg carton. Instead of measuring and balancing each individual button with delicate manual spacers, the grid defines 4 equal-width slots automatically. When buttons are placed inside, they effortlessly snap into clean rows and columns!',
+      language: 'css',
       targetFileId: 'style-css',
       initialCode: `.keypad {
   /* COMPLETE CSS GRID RULES HERE */
@@ -508,8 +510,10 @@ if (equalsBtn) {
       conceptId: 'dom_manipulation',
       conceptName: 'DOM Manipulation & String State',
       taskType: 'COMPLETE_CODE',
+      language: 'javascript',
       prompt: 'Complete `appendDigit(currentInput, digit)` so that if `currentInput` is "0", it returns `digit`; otherwise it appends the new digit to the string.',
       contextExplanation: 'In vanilla JavaScript, updating the UI requires manipulating element textContent and maintaining input strings in memory.',
+      realLifeExample: 'Think of a restaurant order whiteboard. When the chef starts a new order, they wipe off the previous dummy order "0" and write "7". As new customer requests come in, they write them side-by-side ("75"). The kitchen staff immediately reads the board to prepare the order!',
       targetFileId: 'script-js',
       initialCode: `function appendDigit(currentInput, digit) {
   // YOUR CODE HERE
@@ -570,8 +574,10 @@ if (equalsBtn) {
       conceptId: 'functions_parameters',
       conceptName: 'Pure Calculation Functions',
       taskType: 'COMPLETE_CODE',
+      language: 'javascript',
       prompt: 'Implement `calculate(prev, current, op)` using a switch statement supporting +, -, ×, and ÷. Guard against division by zero by returning NaN.',
       contextExplanation: 'Pure functions decouple arithmetic logic from browser DOM events, making your application easily testable and bug-free.',
+      realLifeExample: 'Think of a coffee vending machine: you insert coins (parameters `prev`), choose a flavor (operator `op`), and press brew (`calculate`). The machine pours your cup (`return`) without spilling coffee on the counter (pure function, no side effects)!',
       targetFileId: 'script-js',
       initialCode: `function calculate(prev, current, op) {
   // YOUR CODE HERE

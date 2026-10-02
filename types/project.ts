@@ -1,4 +1,4 @@
-﻿export type InterventionLevel = 'tutor' | 'guided' | 'collaborative' | 'ai';
+export type InterventionLevel = 'tutor' | 'guided' | 'collaborative' | 'ai';
 
 export type AuthorType = 'AI_GENERATED' | 'USER_WRITTEN' | 'AI_ASSISTED' | 'USER_MODIFIED';
 
@@ -18,7 +18,7 @@ export interface ProjectFile {
   path: string;
   name: string;
   content: string;
-  language: 'typescript' | 'javascript' | 'tsx' | 'jsx' | 'css' | 'html' | 'json';
+  language: 'typescript' | 'javascript' | 'tsx' | 'jsx' | 'css' | 'html' | 'json' | 'cpp' | 'java' | 'python';
   version: number;
   isFolder?: boolean;
   contributions: CodeContribution[];
@@ -33,6 +33,8 @@ export interface Project {
     language: string;
     styling: string;
     backend?: string;
+    framework?: string;
+    runtime?: string;
   };
   interventionLevel: InterventionLevel;
   currentStage: string;

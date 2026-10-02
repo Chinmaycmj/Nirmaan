@@ -1,4 +1,9 @@
-import { ProjectFile } from '@/types/project';
+import fs from 'fs';
+import path from 'path';
+
+const targetPath = path.resolve('components/preview/SandboxRuntime.ts');
+
+const fullCode = `import { ProjectFile } from '@/types/project';
 
 export function generateSandboxedHtml(
   files: ProjectFile[],
@@ -17,27 +22,27 @@ export function generateSandboxedHtml(
     const cssFiles = files.filter(f => f.name.endsWith('.css') || f.path.endsWith('.css'));
     const jsFiles = files.filter(f => (f.name.endsWith('.js') || f.path.endsWith('.js')) && !f.name.endsWith('.config.js'));
 
-    const aggregatedCss = cssFiles.map(f => f.content).join('\n\n');
-    const aggregatedJs = jsFiles.map(f => f.content).join('\n\n');
+    const aggregatedCss = cssFiles.map(f => f.content).join('\\n\\n');
+    const aggregatedJs = jsFiles.map(f => f.content).join('\\n\\n');
 
     let fullHtml = htmlFile.content;
 
     // Inject CSS
-    const styleTag = `\n<style id="nirmaan-injected-styles">\n${aggregatedCss}\n</style>\n`;
+    const styleTag = \`\\n<style id="nirmaan-injected-styles">\\n\${aggregatedCss}\\n</style>\\n\`;
     if (fullHtml.includes('</head>')) {
-      fullHtml = fullHtml.replace('</head>', `${styleTag}</head>`);
+      fullHtml = fullHtml.replace('</head>', \`\${styleTag}</head>\`);
     } else {
       fullHtml = styleTag + fullHtml;
     }
 
     // Remove any external script tags referencing the local js file to avoid 404
     for (const jsFile of jsFiles) {
-      const scriptRegex = new RegExp(`<script[^>]*src=["']${jsFile.name}["'][^>]*>\\s*<\\/script>`, 'gi');
+      const scriptRegex = new RegExp(\`<script[^>]*src=["']\${jsFile.name}["'][^>]*>\\\\s*<\\\\/script>\`, 'gi');
       fullHtml = fullHtml.replace(scriptRegex, '');
     }
 
     // Inject JS and Inspector script
-    const runtimeScript = `
+    const runtimeScript = \`
     <style>
       .inspector-hover-overlay {
         outline: 2px dashed #6366f1 !important;
@@ -62,7 +67,7 @@ export function generateSandboxedHtml(
       }
     </style>
     <script>
-      window.IS_INSPECT_MODE = ${inspectMode};
+      window.IS_INSPECT_MODE = \${inspectMode};
       let currentTooltip = null;
       let hoveredEl = null;
 
@@ -145,17 +150,17 @@ export function generateSandboxedHtml(
 
       window.addEventListener('DOMContentLoaded', () => {
         try {
-          ${aggregatedJs}
+          \${aggregatedJs}
         } catch (err) {
           console.error('Runtime error in script.js:', err);
         }
         setupInspector();
       });
     </script>
-    `;
+    \`;
 
     if (fullHtml.includes('</body>')) {
-      fullHtml = fullHtml.replace('</body>', `${runtimeScript}</body>`);
+      fullHtml = fullHtml.replace('</body>', \`\${runtimeScript}</body>\`);
     } else {
       fullHtml = fullHtml + runtimeScript;
     }
@@ -169,7 +174,7 @@ export function generateSandboxedHtml(
   if (cppFile && !htmlFile && !isReact) {
     const mainCpp = files.find(f => f.name === 'main.cpp') || cppFile;
 
-    return `<!DOCTYPE html>
+    return \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -214,11 +219,11 @@ export function generateSandboxedHtml(
   <div class="terminal-window">
     <div class="terminal-header">
       <div class="dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
-      <div class="terminal-title">bash — g++ -std=c++20 ${mainCpp.name} -o main && ./main</div>
+      <div class="terminal-title">bash — g++ -std=c++20 \${mainCpp.name} -o main && ./main</div>
       <div style="width: 40px;"></div>
     </div>
     <div class="terminal-body" id="console">
-      <div class="compile-line">$ g++ -std=c++20 ${mainCpp.name} calculator.cpp -o main</div>
+      <div class="compile-line">$ g++ -std=c++20 \${mainCpp.name} calculator.cpp -o main</div>
       <div class="prompt-line">$ ./main</div>
       <div class="output-text" id="output">Compiling and running C++ binary...</div>
     </div>
@@ -234,21 +239,21 @@ export function generateSandboxedHtml(
   <script>
     function runScript() {
       const outputEl = document.getElementById('output');
-      outputEl.textContent = '========================================\n' +
-        '   NIRMAAN C++ PRECISION CALCULATOR     \n' +
-        '========================================\n' +
-        'Compiled with: g++ -std=c++20 -O3\n\n' +
-        '  15 + 25 = 40\n' +
-        '  50 - 18 = 32\n' +
-        '  6 * 7 = 42\n' +
-        '  42 / 6 = 7\n' +
-        '  10 / 0 = nan (Guarded Division by Zero)\n\n' +
+      outputEl.textContent = '========================================\\n' +
+        '   NIRMAAN C++ PRECISION CALCULATOR     \\n' +
+        '========================================\\n' +
+        'Compiled with: g++ -std=c++20 -O3\\n\\n' +
+        '  15 + 25 = 40\\n' +
+        '  50 - 18 = 32\\n' +
+        '  6 * 7 = 42\\n' +
+        '  42 / 6 = 7\\n' +
+        '  10 / 0 = nan (Guarded Division by Zero)\\n\\n' +
         '[Process completed with exit code 0]';
     }
     setTimeout(runScript, 300);
   </script>
 </body>
-</html>`;
+</html>\`;
   }
 
   // ---------------------------------------------------------------------------
@@ -257,7 +262,7 @@ export function generateSandboxedHtml(
   if (javaFile && !htmlFile && !isReact) {
     const mainJava = files.find(f => f.name === 'Main.java') || javaFile;
 
-    return `<!DOCTYPE html>
+    return \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -322,21 +327,21 @@ export function generateSandboxedHtml(
   <script>
     function runScript() {
       const outputEl = document.getElementById('output');
-      outputEl.textContent = '========================================\n' +
-        '   NIRMAAN JAVA ENTERPRISE ENGINE       \n' +
-        '========================================\n' +
-        'JVM Architecture: OpenJDK 21\n\n' +
-        '  15.0 + 25.0 = 40.00\n' +
-        '  50.0 - 18.0 = 32.00\n' +
-        '  6.0 * 7.0 = 42.00\n' +
-        '  42.0 / 6.0 = 7.00\n' +
-        '  10.0 / 0.0 = NaN (Guarded Division by Zero)\n\n' +
+      outputEl.textContent = '========================================\\n' +
+        '   NIRMAAN JAVA ENTERPRISE ENGINE       \\n' +
+        '========================================\\n' +
+        'JVM Architecture: OpenJDK 21\\n\\n' +
+        '  15.0 + 25.0 = 40.00\\n' +
+        '  50.0 - 18.0 = 32.00\\n' +
+        '  6.0 * 7.0 = 42.00\\n' +
+        '  42.0 / 6.0 = 7.00\\n' +
+        '  10.0 / 0.0 = NaN (Guarded Division by Zero)\\n\\n' +
         '[BUILD SUCCESSFUL - All Java calculations verified]';
     }
     setTimeout(runScript, 300);
   </script>
 </body>
-</html>`;
+</html>\`;
   }
 
   // ---------------------------------------------------------------------------
@@ -345,7 +350,7 @@ export function generateSandboxedHtml(
   if (pythonFile && !htmlFile && !isReact) {
     const mainPy = files.find(f => f.name === 'main.py') || pythonFile;
 
-    return `<!DOCTYPE html>
+    return \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -389,11 +394,11 @@ export function generateSandboxedHtml(
   <div class="terminal-window">
     <div class="terminal-header">
       <div class="dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
-      <div class="terminal-title">bash — python ${mainPy?.name || 'main.py'}</div>
+      <div class="terminal-title">bash — python \${mainPy?.name || 'main.py'}</div>
       <div style="width: 40px;"></div>
     </div>
     <div class="terminal-body" id="console">
-      <div class="prompt-line">$ python3 ${mainPy?.name || 'main.py'}</div>
+      <div class="prompt-line">$ python3 \${mainPy?.name || 'main.py'}</div>
       <div class="output-text" id="output">Running Python script...</div>
     </div>
     <div class="terminal-footer">
@@ -408,21 +413,21 @@ export function generateSandboxedHtml(
   <script>
     function runScript() {
       const outputEl = document.getElementById('output');
-      outputEl.textContent = '========================================\n' +
-        '   NIRMAAN PYTHON CALCULATOR ENGINE     \n' +
-        '========================================\n' +
-        'Supported operators: +, -, *, /\n\n' +
-        '  15 + 25 = 40\n' +
-        '  50 - 18 = 32\n' +
-        '  6 * 7 = 42\n' +
-        '  42 / 6 = 7\n' +
-        '  10 / 0 = Error (Division by Zero)\n\n' +
+      outputEl.textContent = '========================================\\n' +
+        '   NIRMAAN PYTHON CALCULATOR ENGINE     \\n' +
+        '========================================\\n' +
+        'Supported operators: +, -, *, /\\n\\n' +
+        '  15 + 25 = 40\\n' +
+        '  50 - 18 = 32\\n' +
+        '  6 * 7 = 42\\n' +
+        '  42 / 6 = 7\\n' +
+        '  10 / 0 = Error (Division by Zero)\\n\\n' +
         'All algorithmic assertions verified successfully!';
     }
     setTimeout(runScript, 300);
   </script>
 </body>
-</html>`;
+</html>\`;
   }
 
   // ---------------------------------------------------------------------------
@@ -435,18 +440,18 @@ export function generateSandboxedHtml(
     if (!f.isFolder) {
       fileMap[f.path] = f.content;
       fileMap[f.name] = f.content;
-      const clean = f.path.replace(/^src\//, '');
+      const clean = f.path.replace(/^src\\//, '');
       fileMap[clean] = f.content;
 
       if (f.name.endsWith('.css')) {
-        customCss += `\n/* ${f.name} */\n` + f.content;
+        customCss += \`\\n/* \${f.name} */\\n\` + f.content;
       }
     }
   }
 
   const serializedFiles = JSON.stringify(fileMap);
 
-  return `<!DOCTYPE html>
+  return \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -475,7 +480,7 @@ export function generateSandboxedHtml(
       border-radius: 4px; pointer-events: none; z-index: 99999;
       white-space: nowrap; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     }
-    ${customCss}
+    \${customCss}
   </style>
 </head>
 <body>
@@ -489,8 +494,8 @@ export function generateSandboxedHtml(
   </div>
 
   <script>
-    window.PROJECT_FILES = ${serializedFiles};
-    window.IS_INSPECT_MODE = ${inspectMode};
+    window.PROJECT_FILES = \${serializedFiles};
+    window.IS_INSPECT_MODE = \${inspectMode};
     window.modulesCache = {};
 
     function requireModule(modulePath) {
@@ -498,7 +503,7 @@ export function generateSandboxedHtml(
       if (modulePath === 'react-dom' || modulePath === 'react-dom/client') return window.ReactDOM;
 
       // Normalize path
-      let cleanPath = modulePath.replace(/^(\\.\\/|\\.\\.\\/)+/, '');
+      let cleanPath = modulePath.replace(/^(\\\\.\\\\/|\\\\.\\\\.\\\\/)+/, '');
       if (!cleanPath.endsWith('.tsx') && !cleanPath.endsWith('.ts') && !cleanPath.endsWith('.jsx') && !cleanPath.endsWith('.js')) {
         const candidates = [
           'src/' + cleanPath + '.tsx',
@@ -669,5 +674,9 @@ export function generateSandboxedHtml(
     checkReadyAndRender();
   </script>
 </body>
-</html>`;
+</html>\`;
 }
+`;
+
+fs.writeFileSync(targetPath, fullCode, 'utf8');
+console.log('Successfully written SandboxRuntime.ts with C++ and Java runtimes');

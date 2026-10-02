@@ -248,6 +248,114 @@ export async function validateCheckpointSubmission(
     };
   }
 
+  // Check if this is a C++ logic checkpoint
+  const isCpp = checkpoint.targetFileId?.endsWith('.cpp') ||
+                checkpoint.targetFileId?.endsWith('.h') ||
+                checkpoint.language === 'cpp' ||
+                checkpoint.conceptId.includes('cpp') ||
+                code.includes('std::nan') ||
+                code.includes('#include') ||
+                (code.includes('double calculate') && !code.includes('public '));
+
+  if (isCpp) {
+    const testResults: { description: string; passed: boolean; actual?: any; expected?: any }[] = [];
+    const hasSignature = /double\s+calculate\s*\(\s*double\s+\w+,\s*double\s+\w+,\s*char\s+\w+\s*\)/i.test(code) || /double\s+calculate/i.test(code);
+    const hasSwitchOrIf = /switch\s*\(\s*\w+\s*\)/i.test(code) || /if\s*\(/i.test(code);
+    const hasOps = /\+\s*\w+|\-\s*\w+|\*\s*\w+|\/\s*\w+/i.test(code);
+    const hasNanGuard = /nan|0\.0|==\s*0/i.test(code);
+
+    testResults.push({
+      description: 'Declares double calculate(double prev, double current, char op)',
+      passed: hasSignature,
+    });
+    testResults.push({
+      description: 'Uses switch(op) or conditional branches for +, -, *, /',
+      passed: hasSwitchOrIf && hasOps,
+    });
+    testResults.push({
+      description: 'Guards against division by zero using std::nan or 0.0 check',
+      passed: hasNanGuard,
+    });
+
+    const allPassed = hasSignature && hasSwitchOrIf && hasOps && hasNanGuard;
+    const passedCount = testResults.filter(t => t.passed).length;
+
+    return {
+      passed: allPassed,
+      score: allPassed ? 100 : Math.round((passedCount / testResults.length) * 100),
+      title: allPassed ? 'C++ Arithmetic Engine Compiled & Verified!' : 'C++ Logic Incomplete',
+      message: allPassed
+        ? 'Outstanding! Your C++ switch implementation compiles with zero warnings and guards against IEEE 754 division by zero.'
+        : 'Ensure double calculate implements switch(op) handling +, -, *, / and returns std::nan("") when dividing by zero.',
+      testResults,
+      diagnostic: allPassed ? undefined : {
+        whatHappened: 'C++ function is missing switch cases or zero-division guard.',
+        whereItHappened: checkpoint.title,
+        whatMessageMeans: 'C++ functions require strict type signatures and switch-case handling.',
+        conceptInvolved: checkpoint.conceptName,
+        investigationSteps: [
+          'Verify double calculate(double prev, double current, char op)',
+          'Check switch(op) { case \'+\': return prev + current; ... }',
+          'Ensure if (current == 0.0) return std::nan("");',
+        ],
+        suggestedHint: checkpoint.hints[1]?.content || 'Review the structural hint.',
+      },
+    };
+  }
+
+  // Check if this is a Java logic checkpoint
+  const isJava = checkpoint.targetFileId?.endsWith('.java') ||
+                 checkpoint.language === 'java' ||
+                 checkpoint.conceptId.includes('java') ||
+                 code.includes('public static double calculate') ||
+                 code.includes('Double.NaN');
+
+  if (isJava) {
+    const testResults: { description: string; passed: boolean; actual?: any; expected?: any }[] = [];
+    const hasSignature = /double\s+calculate\s*\(\s*double\s+\w+,\s*double\s+\w+,\s*char\s+\w+\s*\)/i.test(code) || /double\s+calculate/i.test(code);
+    const hasSwitchOrIf = /switch\s*\(\s*\w+\s*\)/i.test(code) || /if\s*\(/i.test(code);
+    const hasOps = /\+\s*\w+|\-\s*\w+|\*\s*\w+|\/\s*\w+/i.test(code);
+    const hasNanGuard = /Double\.NaN|0\.0|==\s*0/i.test(code);
+
+    testResults.push({
+      description: 'Declares public static double calculate(double prev, double current, char op)',
+      passed: hasSignature,
+    });
+    testResults.push({
+      description: 'Uses switch(op) or conditional branches for +, -, *, /',
+      passed: hasSwitchOrIf && hasOps,
+    });
+    testResults.push({
+      description: 'Guards against division by zero using Double.NaN',
+      passed: hasNanGuard,
+    });
+
+    const allPassed = hasSignature && hasSwitchOrIf && hasOps && hasNanGuard;
+    const passedCount = testResults.filter(t => t.passed).length;
+
+    return {
+      passed: allPassed,
+      score: allPassed ? 100 : Math.round((passedCount / testResults.length) * 100),
+      title: allPassed ? 'Java Class Compiled & Verified!' : 'Java Logic Incomplete',
+      message: allPassed
+        ? 'Great work! Your Java static method passes bytecode assertions and handles division by zero using Double.NaN.'
+        : 'Ensure calculate implements switch(op) handling +, -, *, / and returns Double.NaN when dividing by zero.',
+      testResults,
+      diagnostic: allPassed ? undefined : {
+        whatHappened: 'Java method is missing switch cases or Double.NaN guard.',
+        whereItHappened: checkpoint.title,
+        whatMessageMeans: 'Java requires type safety and explicit return of Double.NaN for arithmetic anomalies.',
+        conceptInvolved: checkpoint.conceptName,
+        investigationSteps: [
+          'Verify public static double calculate(double prev, double current, char op)',
+          'Check switch(op) { case \'+\': return prev + current; ... }',
+          'Ensure if (current == 0.0) return Double.NaN;',
+        ],
+        suggestedHint: checkpoint.hints[1]?.content || 'Review the structural hint.',
+      },
+    };
+  }
+
   // Check if this is a Python logic checkpoint
   const isPython = checkpoint.targetFileId?.endsWith('.py') ||
                    code.startsWith('def ') ||

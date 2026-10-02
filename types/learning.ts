@@ -1,4 +1,4 @@
-﻿import { AuthorType } from './project';
+import { AuthorType } from './project';
 
 export type TaskType = 
   | 'COMPLETE_CODE'      // Type A: Fill in missing portion
@@ -81,6 +81,8 @@ export interface LearningCheckpoint {
   feedback?: string;
   completedAt?: number;
   whatChangedInPreview?: string; // Clear explanation of visual change
+  realLifeExample?: string;      // Relatable real-world physical metaphor or practical analogy
+  language?: string;             // Active language: 'cpp' | 'java' | 'python' | 'javascript' | 'css' | 'html'
 }
 
 export interface ConceptMastery {

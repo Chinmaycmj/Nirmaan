@@ -7,6 +7,8 @@ import { createMarkdownNotesProject } from './curriculum/markdownNotes';
 import { createPomodoroTimerProject } from './curriculum/pomodoroTimer';
 import { createVanillaCalculatorProject } from './curriculum/vanillaCalculator';
 import { createPythonCalculatorProject } from './curriculum/pythonCalculator';
+import { createCppCalculatorProject } from './curriculum/cppCalculator';
+import { createJavaCalculatorProject } from './curriculum/javaCalculator';
 import { detectTechStack, TechStackId } from './stackDetector';
 
 export function routeOrSynthesizeProject(
@@ -20,8 +22,18 @@ export function routeOrSynthesizeProject(
   const stack = detectTechStack(prompt, explicitStack);
   const lower = prompt.toLowerCase();
 
-  // 1. Check if user requested Vanilla JavaScript + CSS + HTML
-  if (stack.id === 'vanilla_web') {
+  // 1. Check if user requested C++
+  if (stack.id === 'cpp') {
+    return createCppCalculatorProject();
+  }
+
+  // 2. Check if user requested Java
+  if (stack.id === 'java') {
+    return createJavaCalculatorProject();
+  }
+
+  // 3. Check if user requested Vanilla JavaScript + CSS + HTML or React JS
+  if (stack.id === 'vanilla_web' || stack.id === 'javascript' || stack.id === 'react_js') {
     if (
       lower.includes('calc') ||
       lower.includes('math') ||
@@ -32,7 +44,7 @@ export function routeOrSynthesizeProject(
     return synthesizeVanillaProject(prompt);
   }
 
-  // 2. Check if user requested Python
+  // 4. Check if user requested Python
   if (stack.id === 'python') {
     if (
       lower.includes('calc') ||
@@ -44,7 +56,7 @@ export function routeOrSynthesizeProject(
     return createPythonCalculatorProject(); // Default Python project
   }
 
-  // 3. Check if user requested Pure HTML + CSS
+  // 5. Check if user requested Pure HTML + CSS
   if (stack.id === 'html_css') {
     return synthesizeVanillaProject(prompt);
   }
