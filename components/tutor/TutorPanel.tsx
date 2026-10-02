@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { LearningCheckpoint, TaskType, Hint } from '@/types/learning';
@@ -119,14 +119,14 @@ export const TutorPanel: React.FC<TutorPanelProps> = ({
   };
 
   return (
-    <div className="bg-slate-950 border-t border-slate-800 flex flex-col max-h-[380px] overflow-hidden select-none">
+    <div className="bg-slate-950 flex flex-col h-full overflow-hidden select-none">
       {/* Top Header Bar */}
-      <div className="h-11 px-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+      <div className="min-h-11 px-3 py-2 bg-slate-900/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <div className="flex items-center space-x-1.5">
-            <Sparkles className="w-4 h-4 text-indigo-400" />
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span className="text-xs font-bold text-white tracking-wide">
-              Step {currentStepIndex + 1} of {totalCheckpoints}: {checkpoint.title}
+              Step {currentStepIndex + 1} of {totalCheckpoints}
             </span>
           </div>
 

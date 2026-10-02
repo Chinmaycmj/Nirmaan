@@ -30,8 +30,14 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
 
   const quickPrompts = [
     {
+      title: 'Interactive Modern Calculator',
+      tag: 'Pure Math & State',
+      desc: 'React 18 & TypeScript calculator with grid keypad, arithmetic operations, and precision formatting.',
+      prompt: 'Build me a simple calculator with arithmetic operations and modern keypad using React and TypeScript.',
+    },
+    {
       title: 'Smart Expense Tracker',
-      tag: 'Section 45 Walkthrough',
+      tag: 'Financial Dashboard',
       desc: 'React, TypeScript, Array methods, summary cards, and financial transactions.',
       prompt: 'Build me a smart expense tracker with category summaries, add expense form, and transaction list using React, TypeScript, and Tailwind CSS.',
     },

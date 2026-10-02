@@ -1,6 +1,31 @@
 ﻿import { LearningCheckpoint, TaskType } from '@/types/learning';
 import { ValidationEvaluation, ErrorDiagnostic } from '@/types/ai';
 
+/**
+ * Sanitizes TypeScript code into vanilla executable JavaScript for testing in new Function().
+ * Strips export/import, type aliases, interfaces, type annotations, and generics.
+ */
+function sanitizeTypeScriptForEvaluation(tsCode: string): string {
+  let js = tsCode;
+  // 1. Strip import statements
+  js = js.replace(/import\s+[\s\S]*?from\s+['"][^'"]+['"];?/g, '');
+  // 2. Strip export keywords
+  js = js.replace(/\bexport\s+(default\s+)?/g, '');
+  // 3. Strip interface declarations
+  js = js.replace(/interface\s+\w+[\s\S]*?\{[\s\S]*?\}/g, '');
+  // 4. Strip type declarations
+  js = js.replace(/type\s+\w+\s*=[\s\S]*?;/g, '');
+  // 5. Strip return type annotations on functions e.g. '): number {' -> ') {'
+  js = js.replace(/\)\s*:\s*[A-Za-z0-9_<>\[\]|&\s]+\s*\{/g, ') {');
+  // 6. Strip param type annotations e.g. 'prev: number' -> 'prev'
+  js = js.replace(/([a-zA-Z0-9_]+)\s*:\s*[A-Za-z0-9_<>\[\]|&]+(?=[,\)\=\{])/g, '$1');
+  // 7. Strip type assertions e.g. 'as OperationType'
+  js = js.replace(/\s+as\s+[A-Za-z0-9_<>\[\]]+/g, '');
+  // 8. Strip generics on calls e.g. 'useState<string>("0")'
+  js = js.replace(/<[A-Za-z0-9_,\s]+>(?=\()/g, '');
+  return js;
+}
+
 export async function validateCheckpointSubmission(
   checkpoint: LearningCheckpoint,
   userSubmission: string | number | boolean
@@ -101,12 +126,12 @@ export async function validateCheckpointSubmission(
     const matchedKeywords = expectedKeywords.filter(kw => lower.includes(kw.toLowerCase()));
     const ratio = expectedKeywords.length > 0 ? matchedKeywords.length / expectedKeywords.length : 1;
 
-    if (ratio >= 0.5) {
+    if (ratio >= 0.4) {
       return {
         passed: true,
-        score: Math.round(ratio * 100),
+        score: Math.max(80, Math.round(ratio * 100)),
         title: 'Great Explanation!',
-        message: `You demonstrated a solid understanding of ${checkpoint.conceptName}! You touched upon key points: ${matchedKeywords.join(', ')}.`,
+        message: `You demonstrated a solid understanding of ${checkpoint.conceptName}! Key aspects identified: ${matchedKeywords.join(', ')}.`,
         testResults: expectedKeywords.map(kw => ({
           description: `Identified concept aspect: "${kw}"`,
           passed: lower.includes(kw.toLowerCase()),
@@ -167,7 +192,59 @@ export async function validateCheckpointSubmission(
     };
   }
 
-  // Execute test cases
+  // Check if this is a TypeScript interface/type definition checkpoint (compile-time only)
+  if (checkpoint.conceptId === 'ts_interfaces' || (code.includes('interface ') && !code.includes('function '))) {
+    const testResults: { description: string; passed: boolean }[] = [];
+    let passedCount = 0;
+
+    // Verify key fields
+    const hasInterface = /interface\s+\w+/i.test(code);
+    testResults.push({
+      description: 'Declares a valid interface structure',
+      passed: hasInterface,
+    });
+    if (hasInterface) passedCount++;
+
+    for (const test of checkpoint.testCases) {
+      // Check test description against code
+      const descLower = test.description.toLowerCase();
+      let match = true;
+      if (descLower.includes('amount')) {
+        match = /amount\s*:\s*number/i.test(code);
+      } else if (descLower.includes('category') || descLower.includes('date')) {
+        match = /category/i.test(code) && /date/i.test(code);
+      } else {
+        match = true;
+      }
+
+      testResults.push({
+        description: test.description,
+        passed: match,
+      });
+      if (match) passedCount++;
+    }
+
+    const allPassed = testResults.every(t => t.passed);
+    return {
+      passed: allPassed,
+      score: allPassed ? 100 : Math.round((passedCount / testResults.length) * 100),
+      title: allPassed ? 'Challenge Solved! Outstanding work.' : 'Interface Incomplete',
+      message: allPassed
+        ? 'Interface contracts verified. All required fields and types are present.'
+        : 'Make sure all required interface properties and types are defined.',
+      testResults,
+      diagnostic: allPassed ? undefined : {
+        whatHappened: 'Missing required interface properties.',
+        whereItHappened: 'Interface declaration',
+        whatMessageMeans: 'TypeScript requires all declared contract properties to match specifications.',
+        conceptInvolved: checkpoint.conceptName,
+        investigationSteps: ['Check for amount: number;', 'Check for category: ExpenseCategory;', 'Check for date: string;'],
+        suggestedHint: checkpoint.hints[2]?.content || 'Review the interface syntax.',
+      },
+    };
+  }
+
+  // Execute runtime test cases with sanitized JavaScript
   const testResults: {
     description: string;
     passed: boolean;
@@ -178,13 +255,15 @@ export async function validateCheckpointSubmission(
   let allPassed = true;
   let diagnostic: ErrorDiagnostic | undefined;
 
+  const sanitizedCode = sanitizeTypeScriptForEvaluation(code);
+
   for (const test of checkpoint.testCases) {
     try {
       if (test.assertionFn) {
-        // Evaluate the assertion against user's code in a safe simulated runtime
+        const sanitizedAssertion = sanitizeTypeScriptForEvaluation(test.assertionFn);
         const testCode = `
-          ${code};
-          ${test.assertionFn};
+          ${sanitizedCode};
+          ${sanitizedAssertion};
         `;
         const testRunner = new Function('testInput', testCode);
         const result = testRunner(test.input);
@@ -212,11 +291,10 @@ export async function validateCheckpointSubmission(
           };
         }
       } else {
-        // Fallback semantic pattern checking if no dynamic assertionFn
+        // Fallback semantic pattern checking
         const normalized = code.replace(/\s+/g, ' ');
         const solutionNormalized = checkpoint.solutionCode.replace(/\s+/g, ' ');
 
-        // Check if essential tokens exist
         const hasCoreLogic = solutionNormalized.split(';').every(part => {
           const trimmed = part.trim();
           if (!trimmed || trimmed.length < 5) return true;

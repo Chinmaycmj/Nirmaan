@@ -7,6 +7,7 @@ import { AISettings, ConceptExplanation, ValidationEvaluation } from '@/types/ai
 import { aiService } from '@/lib/ai/provider';
 import { calculateProjectOwnership } from '@/lib/learning/ownershipTracker';
 import { validateCheckpointSubmission } from '@/lib/learning/validator';
+import { createCalculatorProject } from '@/lib/ai/curriculum/calculator';
 import { createExpenseTrackerProject } from '@/lib/ai/curriculum/expenseTracker';
 
 import { AntigravityHero } from '@/components/landing/AntigravityHero';
@@ -19,18 +20,22 @@ import { ExplanationModal } from '@/components/modals/ExplanationModal';
 import { KnowledgeGraphModal } from '@/components/modals/KnowledgeGraphModal';
 import { ProjectTimelineModal } from '@/components/modals/ProjectTimelineModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
+import { Eye, GraduationCap, Columns } from 'lucide-react';
 
 export default function WorkspacePage() {
   // Whether the user is inside the IDE or on the Antigravity clean prompt screen
   const [isWorkspaceActive, setIsWorkspaceActive] = useState<boolean>(false);
 
-  // Initialize project state
-  const [projectData, setProjectData] = useState(() => createExpenseTrackerProject());
+  // Default project: starts with clean Calculator when triggered
+  const [projectData, setProjectData] = useState(() => createCalculatorProject());
   const [project, setProject] = useState<Project>(projectData.project);
   const [checkpoints, setCheckpoints] = useState<LearningCheckpoint[]>(projectData.checkpoints);
   const [milestones, setMilestones] = useState<ProjectMilestone[]>(projectData.milestones);
   const [currentCheckpointIndex, setCurrentCheckpointIndex] = useState<number>(0);
   const [masteredConceptIds, setMasteredConceptIds] = useState<string[]>([]);
+
+  // Right Workbench active tab: 'split' | 'preview' | 'tutor'
+  const [rightTab, setRightTab] = useState<'split' | 'preview' | 'tutor'>('split');
 
   // Modals state
   const [isExplanationOpen, setIsExplanationOpen] = useState<boolean>(false);
@@ -92,7 +97,7 @@ export default function WorkspacePage() {
     }
 
     const explanation = aiService.getConceptExplanation(
-      activeCheckpoint?.conceptId || 'react_components',
+      activeCheckpoint?.conceptId || 'functions_parameters',
       'beginner'
     );
     setActiveExplanation(explanation);
@@ -108,7 +113,7 @@ export default function WorkspacePage() {
 
   // Handle "Why Does This Exist?" Action
   const handleWhyDoesThisExist = (codeSnippet?: string) => {
-    const conceptId = activeCheckpoint?.conceptId || 'ts_interfaces';
+    const conceptId = activeCheckpoint?.conceptId || 'functions_parameters';
     const explanation = aiService.getConceptExplanation(conceptId, 'intermediate');
     setActiveExplanation(explanation);
     setIsExplanationOpen(true);
@@ -205,7 +210,7 @@ export default function WorkspacePage() {
 
   // Reset project
   const handleResetProject = () => {
-    const resetData = createExpenseTrackerProject();
+    const resetData = createCalculatorProject();
     setProject(resetData.project);
     setCheckpoints(resetData.checkpoints);
     setMilestones(resetData.milestones);
@@ -238,9 +243,9 @@ export default function WorkspacePage() {
         onReturnToHero={() => setIsWorkspaceActive(false)}
       />
 
-      {/* Main IDE Workspace: Explorer | Editor | Live Preview */}
+      {/* Main IDE Workspace: Left Explorer | Center Full-Height Editor | Right Workbench */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: File Explorer */}
+        {/* Left: File Explorer (220px) */}
         <FileExplorer
           files={project.files}
           activeFileId={project.activeFileId}
@@ -273,8 +278,8 @@ export default function WorkspacePage() {
           }}
         />
 
-        {/* Center: Monaco Code Editor */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800">
+        {/* Center: Monaco Code Editor (Full Vertical Height, Spacious!) */}
+        <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800 h-full">
           <CodeEditor
             activeFile={activeFile}
             onCodeChange={handleCodeChange}
@@ -282,25 +287,87 @@ export default function WorkspacePage() {
           />
         </div>
 
-        {/* Right: Live Preview Sandbox with Code-to-Preview Connection */}
-        <div className="w-[45%] flex flex-col min-w-[340px] max-w-[680px]">
-          <LivePreview
-            files={project.files}
-            onElementInspected={handleElementInspected}
-          />
+        {/* Right: Interactive Workbench (Width: 480px / 520px, Full Vertical Height!) */}
+        <div className="w-[480px] xl:w-[520px] flex flex-col bg-slate-950 border-l border-slate-800 h-full select-none">
+          {/* Workbench Tab Switcher */}
+          <div className="h-10 px-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs">
+            <div className="flex items-center space-x-1 bg-slate-900 border border-slate-800 p-0.5 rounded-lg">
+              <button
+                onClick={() => setRightTab('split')}
+                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                  rightTab === 'split' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="View Live Preview and AI Tutor together"
+              >
+                <Columns className="w-3.5 h-3.5" />
+                <span>Split View</span>
+              </button>
+              <button
+                onClick={() => setRightTab('preview')}
+                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                  rightTab === 'preview' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Full height Live Preview"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Preview</span>
+              </button>
+              <button
+                onClick={() => setRightTab('tutor')}
+                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                  rightTab === 'tutor' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Full height AI Tutor task & hints"
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>Tutor (Step {currentCheckpointIndex + 1}/{checkpoints.length})</span>
+              </button>
+            </div>
+
+            <div className="text-[11px] text-slate-500 font-mono">
+              {rightTab === 'split' ? 'Preview + Tutor' : rightTab === 'preview' ? 'Live Sandbox' : 'Interactive Task'}
+            </div>
+          </div>
+
+          {/* Workbench Tab Content */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {rightTab === 'preview' && (
+              <LivePreview files={project.files} onElementInspected={handleElementInspected} />
+            )}
+
+            {rightTab === 'tutor' && (
+              <TutorPanel
+                checkpoint={activeCheckpoint}
+                totalCheckpoints={checkpoints.length}
+                currentStepIndex={currentCheckpointIndex}
+                onCheckSubmission={handleCheckSubmission}
+                onConceptExplain={handleConceptExplain}
+                onWhyDoesThisExist={handleWhyDoesThisExist}
+                onNextCheckpoint={handleNextCheckpoint}
+              />
+            )}
+
+            {rightTab === 'split' && (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <div className="h-[46%] border-b border-slate-800 overflow-hidden">
+                  <LivePreview files={project.files} onElementInspected={handleElementInspected} />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <TutorPanel
+                    checkpoint={activeCheckpoint}
+                    totalCheckpoints={checkpoints.length}
+                    currentStepIndex={currentCheckpointIndex}
+                    onCheckSubmission={handleCheckSubmission}
+                    onConceptExplain={handleConceptExplain}
+                    onWhyDoesThisExist={handleWhyDoesThisExist}
+                    onNextCheckpoint={handleNextCheckpoint}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Bottom: AI Tutor & Learning Panel */}
-      <TutorPanel
-        checkpoint={activeCheckpoint}
-        totalCheckpoints={checkpoints.length}
-        currentStepIndex={currentCheckpointIndex}
-        onCheckSubmission={handleCheckSubmission}
-        onConceptExplain={handleConceptExplain}
-        onWhyDoesThisExist={handleWhyDoesThisExist}
-        onNextCheckpoint={handleNextCheckpoint}
-      />
 
       {/* Modals */}
       <ExplanationModal
