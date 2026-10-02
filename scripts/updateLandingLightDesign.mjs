@@ -1,4 +1,9 @@
-'use client';
+import fs from 'fs';
+import path from 'path';
+
+const heroPath = path.resolve('components/landing/AntigravityHero.tsx');
+
+const lightHeroCode = `'use client';
 
 import React, { useState } from 'react';
 import { 
@@ -410,3 +415,7 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
     </div>
   );
 };
+`;
+
+fs.writeFileSync(heroPath, lightHeroCode, 'utf8');
+console.log('Successfully updated AntigravityHero.tsx with modern light theme and navy/blue geometric ribbons');
