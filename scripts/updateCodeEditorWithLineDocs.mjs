@@ -1,4 +1,10 @@
-'use client';
+import fs from 'fs';
+import path from 'path';
+
+const editorPath = path.resolve('components/ide/CodeEditor.tsx');
+let content = fs.readFileSync(editorPath, 'utf8');
+
+const updatedCodeEditor = `'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
@@ -129,11 +135,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           {/* Toggle token & line inspector */}
           <button
             onClick={() => setShowInspector(!showInspector)}
-            className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs transition-colors border font-mono ${
+            className={\`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs transition-colors border font-mono \${
               showInspector 
                 ? 'bg-zinc-800 text-white border-zinc-600' 
                 : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white'
-            }`}
+            }\`}
             title="Toggle Token & Line Documentation Inspector"
           >
             <BookOpen className="w-3.5 h-3.5" />
@@ -245,7 +251,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] text-zinc-200 hover:text-white underline decoration-zinc-600 hover:decoration-white font-mono transition-colors shrink-0"
-                    title={`View original specification on ${lineDoc.docSource}`}
+                    title={\`View original specification on \${lineDoc.docSource}\`}
                   >
                     <span>Official Docs: {lineDoc.docSource}</span>
                     <ExternalLink className="w-3 h-3 text-zinc-400" />
@@ -262,7 +268,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                       key={i}
                       onClick={() => setSelectedTokenDoc(t)}
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-[10px] font-mono transition-colors"
-                      title={`Click to inspect ${t.name}`}
+                      title={\`Click to inspect \${t.name}\`}
                     >
                       <span>{t.token}</span>
                       <HelpCircle className="w-2.5 h-2.5 text-zinc-400" />
@@ -277,3 +283,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     </div>
   );
 };
+`;
+
+fs.writeFileSync(editorPath, updatedCodeEditor, 'utf8');
+console.log('Successfully updated CodeEditor.tsx with Line & Token Docs HUD');

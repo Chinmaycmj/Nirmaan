@@ -1,4 +1,9 @@
-'use client';
+import fs from 'fs';
+import path from 'path';
+
+const heroPath = path.resolve('components/landing/AntigravityHero.tsx');
+
+const heroContent = `'use client';
 
 import React, { useState } from 'react';
 import { 
@@ -348,3 +353,7 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
     </div>
   );
 };
+`;
+
+fs.writeFileSync(heroPath, heroContent, 'utf8');
+console.log('Successfully updated AntigravityHero.tsx with monochrome luxury obsidian design');

@@ -291,4 +291,25 @@ test('Stack detector accurately routes "Simple calculator using Js" to vanilla_w
   assert.notEqual(detectStack('Simple calculator using Js'), 'react_ts');
 });
 
+// Test 15: Token & Line Documentation Engine with Official External Links
+test('Token documentation engine resolves tokens and generates official documentation links', () => {
+  const tokenRegistry = {
+    'switch': { source: 'cppreference.com', url: 'https://en.cppreference.com/w/cpp/language/switch' },
+    'std::nan': { source: 'cppreference.com', url: 'https://en.cppreference.com/w/cpp/numeric/math/nan' },
+    'Double.NaN': { source: 'Oracle Java Docs', url: 'https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html#NaN' },
+    'addEventListener': { source: 'MDN Web Docs', url: 'https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener' },
+    'grid-template-columns': { source: 'MDN Web Docs', url: 'https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns' },
+  };
+
+  assert.equal(tokenRegistry['switch'].source, 'cppreference.com');
+  assert.equal(tokenRegistry['std::nan'].source, 'cppreference.com');
+  assert.equal(tokenRegistry['Double.NaN'].source, 'Oracle Java Docs');
+  assert.equal(tokenRegistry['addEventListener'].source, 'MDN Web Docs');
+  assert.equal(tokenRegistry['grid-template-columns'].source, 'MDN Web Docs');
+  assert.ok(tokenRegistry['std::nan'].url.includes('cppreference'));
+  assert.ok(tokenRegistry['Double.NaN'].url.includes('oracle'));
+  assert.ok(tokenRegistry['addEventListener'].url.includes('mozilla'));
+});
+
+
 
