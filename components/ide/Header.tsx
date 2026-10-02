@@ -11,7 +11,8 @@ import {
   Layers, 
   CheckCircle2, 
   HelpCircle,
-  RotateCcw
+  RotateCcw,
+  ArrowLeft
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -26,6 +27,7 @@ interface HeaderProps {
   onOpenTimeline: () => void;
   onResetProject: () => void;
   onNewProject: () => void;
+  onReturnToHero?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTimeline,
   onResetProject,
   onNewProject,
+  onReturnToHero,
 }) => {
   const interventionLabels: Record<InterventionLevel, { name: string; desc: string }> = {
     tutor: { name: 'Tutor Mode', desc: 'You write most code; AI hints & explains' },
@@ -51,14 +54,29 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-14 bg-slate-950 border-b border-slate-800 px-4 flex items-center justify-between select-none z-20">
       {/* Brand & Project Info */}
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2.5">
+      <div className="flex items-center space-x-3">
+        {onReturnToHero && (
+          <button
+            onClick={onReturnToHero}
+            className="flex items-center space-x-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 text-xs transition-colors"
+            title="Return to 'What do you want to build?' prompt screen"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">New Prompt</span>
+          </button>
+        )}
+
+        <div 
+          onClick={onReturnToHero}
+          className="flex items-center space-x-2.5 cursor-pointer hover:opacity-90 transition-opacity"
+          title="Nirmaan - Click to return to home prompt"
+        >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-sm tracking-tight text-white">LearnCraft</span>
+              <span className="font-bold text-sm tracking-tight text-white">Nirmaan</span>
               <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-semibold px-1.5 py-0.5 rounded border border-indigo-500/30">
                 AI Co-Builder
               </span>
@@ -70,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Stage Badge */}
-        <div className="hidden lg:flex items-center space-x-2 pl-4 border-l border-slate-800">
+        <div className="hidden lg:flex items-center space-x-2 pl-3 border-l border-slate-800">
           <span className="text-xs text-slate-400">Phase:</span>
           <span className="text-xs font-medium text-slate-200 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
             {stageName}
@@ -163,15 +181,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Play className="w-3.5 h-3.5 fill-current" />
           <span>Run Project</span>
-        </button>
-
-        {/* New / Reset Project */}
-        <button
-          onClick={onNewProject}
-          className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 rounded-lg transition-colors"
-          title="Create New Project"
-        >
-          <Sparkles className="w-4 h-4 text-amber-400" />
         </button>
 
         {/* Settings */}
