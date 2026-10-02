@@ -1,4 +1,9 @@
-import { Project, ProjectFile } from '@/types/project';
+import fs from 'fs';
+import path from 'path';
+
+const targetPath = path.resolve('lib/ai/universalPlanner.ts');
+
+const code = `import { Project, ProjectFile } from '@/types/project';
 import { LearningCheckpoint, ProjectMilestone } from '@/types/learning';
 import { createCalculatorProject } from './curriculum/calculator';
 import { createExpenseTrackerProject } from './curriculum/expenseTracker';
@@ -118,28 +123,28 @@ function synthesizeVanillaProject(prompt: string): {
   milestones: ProjectMilestone[];
 } {
   const cleaned = prompt
-    .replace(/build\s+(me\s+)?(a\s+|an\s+)?/gi, '')
-    .replace(/using\s+.*$/gi, '')
+    .replace(/build\\s+(me\\s+)?(a\\s+|an\\s+)?/gi, '')
+    .replace(/using\\s+.*$/gi, '')
     .trim();
 
-  const words = cleaned.split(/\s+/).filter(w => w.length > 2);
+  const words = cleaned.split(/\\s+/).filter(w => w.length > 2);
   const primaryTopic = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Web Studio';
-  const projectName = `${primaryTopic} (JS & CSS)`;
+  const projectName = \`\${primaryTopic} (JS & CSS)\`;
   const projectId = 'proj-vanilla-dyn';
 
-  const htmlContent = `<!DOCTYPE html>
+  const htmlContent = \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${projectName}</title>
+  <title>\${projectName}</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app-container">
     <header class="app-header">
       <div class="brand">NIRMAAN &bull; JS + CSS</div>
-      <h1>${projectName}</h1>
+      <h1>\${projectName}</h1>
       <p class="subtitle">Built with standard DOM APIs and modern CSS Grid</p>
     </header>
 
@@ -155,9 +160,9 @@ function synthesizeVanillaProject(prompt: string): {
 
   <script src="script.js"></script>
 </body>
-</html>`;
+</html>\`;
 
-  const cssContent = `:root {
+  const cssContent = \`:root {
   --bg-color: #09090b;
   --card-bg: #141418;
   --card-hover: #1c1c22;
@@ -280,9 +285,9 @@ h1 {
   color: var(--text-muted);
   line-height: 1.5;
 }
-`;
+\`;
 
-  const jsContent = `// ${projectName} - Vanilla JavaScript
+  const jsContent = \`// \${projectName} - Vanilla JavaScript
 const initialItems = [
   { id: '1', title: 'First Item', desc: 'Core feature module with native event handling.' },
   { id: '2', title: 'Interactive State', desc: 'Real-time search filtering across cards.' },
@@ -317,7 +322,10 @@ function renderCards(list) {
   list.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = '<div class="card-title">' + item.title + '</div><div class="card-desc">' + item.desc + '</div>';
+    card.innerHTML = \`
+      <div class="card-title">\${item.title}</div>
+      <div class="card-desc">\${item.desc}</div>
+    \`;
     gridEl.appendChild(card);
   });
 }
@@ -344,7 +352,7 @@ if (addBtn) {
 
 // Initial render
 renderCards(items);
-`;
+\`;
 
   const files: ProjectFile[] = [
     {
@@ -418,14 +426,14 @@ renderCards(items);
       prompt: 'Configure .card-grid in style.css to use display: grid with grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) and a 16px gap.',
       contextExplanation: 'CSS Grid creates a fully fluid responsive layout without requiring manual media queries or third-party frameworks.',
       targetFileId: 'file-vanilla-css',
-      initialCode: `.card-grid {
+      initialCode: \`.card-grid {
   /* COMPLETE CSS GRID RULES HERE */
-}`,
-      solutionCode: `.card-grid {
+}\`,
+      solutionCode: \`.card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
-}`,
+}\`,
       testCases: [
         {
           id: 'test-css-grid',
@@ -449,13 +457,13 @@ renderCards(items);
           level: 3,
           type: 'syntax',
           title: 'Full CSS Block',
-          content: `.card-grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));\n  gap: 16px;\n}`,
+          content: \`.card-grid {\\n  display: grid;\\n  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));\\n  gap: 16px;\\n}\`,
         },
         {
           level: 4,
           type: 'partial_solution',
           title: 'Solution code',
-          content: `.card-grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));\n  gap: 16px;\n}`,
+          content: \`.card-grid {\\n  display: grid;\\n  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));\\n  gap: 16px;\\n}\`,
         },
       ],
       status: 'IN_PROGRESS',
@@ -470,20 +478,20 @@ renderCards(items);
       conceptId: 'array_methods',
       conceptName: 'Array.prototype.filter()',
       taskType: 'COMPLETE_CODE',
-      prompt: 'Complete `filterItems(all, query)` to return items whose title or desc includes the query string (case-insensitive). Return all if query is empty.',
+      prompt: 'Complete \`filterItems(all, query)\` to return items whose title or desc includes the query string (case-insensitive). Return all if query is empty.',
       contextExplanation: 'Array.prototype.filter() is a pure non-mutating method that creates a new array of matching elements.',
       targetFileId: 'file-vanilla-js',
-      initialCode: `function filterItems(all, query) {
+      initialCode: \`function filterItems(all, query) {
   // YOUR CODE HERE
-}`,
-      solutionCode: `function filterItems(all, query) {
+}\`,
+      solutionCode: \`function filterItems(all, query) {
   const q = query.trim().toLowerCase();
   if (!q) return all;
   return all.filter(item => 
     item.title.toLowerCase().includes(q) || 
     item.desc.toLowerCase().includes(q)
   );
-}`,
+}\`,
       testCases: [
         {
           id: 'test-filter-all',
@@ -519,7 +527,7 @@ renderCards(items);
           level: 4,
           type: 'partial_solution',
           title: 'Full function',
-          content: `function filterItems(all, query) {\n  const q = query.trim().toLowerCase();\n  if (!q) return all;\n  return all.filter(item => item.title.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q));\n}`,
+          content: \`function filterItems(all, query) {\\n  const q = query.trim().toLowerCase();\\n  if (!q) return all;\\n  return all.filter(item => item.title.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q));\\n}\`,
         },
       ],
       status: 'PENDING',
@@ -556,7 +564,7 @@ renderCards(items);
   const project: Project = {
     id: projectId,
     name: projectName,
-    description: `Web application built with standard HTML5, CSS Grid, and modern JavaScript for: "${prompt}".`,
+    description: \`Web application built with standard HTML5, CSS Grid, and modern JavaScript for: "\${prompt}".\`,
     techStack: {
       frontend: 'Vanilla Web Standards',
       language: 'JavaScript + CSS',
@@ -583,13 +591,13 @@ function synthesizeUniversalProject(prompt: string): {
   milestones: ProjectMilestone[];
 } {
   const cleaned = prompt
-    .replace(/build\s+(me\s+)?(a\s+|an\s+)?/gi, '')
-    .replace(/using\s+react.*$/gi, '')
+    .replace(/build\\s+(me\\s+)?(a\\s+|an\\s+)?/gi, '')
+    .replace(/using\\s+react.*$/gi, '')
     .trim();
 
-  const words = cleaned.split(/\s+/).filter(w => w.length > 2);
+  const words = cleaned.split(/\\s+/).filter(w => w.length > 2);
   const primaryTopic = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Custom Hub';
-  const projectName = `${primaryTopic} App`;
+  const projectName = \`\${primaryTopic} App\`;
 
   const files: ProjectFile[] = [
     {
@@ -599,14 +607,14 @@ function synthesizeUniversalProject(prompt: string): {
       name: 'types.ts',
       language: 'typescript',
       version: 1,
-      content: `export interface Item {
+      content: \`export interface Item {
   id: string;
   name: string;
   category: string;
   active: boolean;
   timestamp: string;
 }
-`,
+\`,
       contributions: [
         {
           id: 'c-1',
@@ -625,7 +633,7 @@ function synthesizeUniversalProject(prompt: string): {
       name: 'helpers.ts',
       language: 'typescript',
       version: 1,
-      content: `import { Item } from '../types';
+      content: \`import { Item } from '../types';
 
 /**
  * Filters items by search term across all text fields.
@@ -647,7 +655,7 @@ export function calculateActiveRatio(items: Item[]): number {
   const activeCount = items.filter(i => i.active).length;
   return Math.round((activeCount / items.length) * 100);
 }
-`,
+\`,
       contributions: [
         {
           id: 'c-2',
@@ -666,7 +674,7 @@ export function calculateActiveRatio(items: Item[]): number {
       name: 'App.tsx',
       language: 'tsx',
       version: 1,
-      content: `import React, { useState } from 'react';
+      content: \`import React, { useState } from 'react';
 import { Item } from './types';
 import { filterItems, calculateActiveRatio } from './utils/helpers';
 
@@ -710,7 +718,7 @@ export default function App() {
       <header className="mb-6 pb-4 border-b border-slate-800 flex justify-between items-center">
         <div>
           <div className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 font-bold">NIRMAAN AI STUDIO</div>
-          <h1 className="text-2xl font-black text-white tracking-tight">${projectName}</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">\${projectName}</h1>
         </div>
         <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-mono">
           <span className="text-slate-400">Active: </span>
@@ -738,13 +746,13 @@ export default function App() {
                 className="p-3.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between cursor-pointer transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  <div className={item.active ? "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" : "w-2.5 h-2.5 rounded-full bg-slate-700"} />
+                  <div className={\`w-2.5 h-2.5 rounded-full \${item.active ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-slate-700'}\`} />
                   <div>
                     <div className="text-sm font-semibold text-slate-200">{item.name}</div>
                     <div className="text-[11px] text-slate-500">{item.category} &bull; {item.timestamp}</div>
                   </div>
                 </div>
-                <span className={item.active ? "text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400"}>
+                <span className={\`text-xs px-2.5 py-0.5 rounded-full font-medium \${item.active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'}\`}>
                   {item.active ? 'Active' : 'Archived'}
                 </span>
               </div>
@@ -774,7 +782,7 @@ export default function App() {
     </div>
   );
 }
-`,
+\`,
       contributions: [
         {
           id: 'c-3',
@@ -797,22 +805,22 @@ export default function App() {
       conceptId: 'array_methods',
       conceptName: 'Array Filter & Higher-Order Functions',
       taskType: 'COMPLETE_CODE',
-      prompt: 'Implement `filterItems(items, query)` to return items where either name or category matches the search term, without mutating the original list.',
+      prompt: 'Implement \`filterItems(items, query)\` to return items where either name or category matches the search term, without mutating the original list.',
       contextExplanation: 'Pure filtering ensures real-time search without corrupting backend state.',
       targetFileId: 'file-dyn-utils',
       targetLineStart: 6,
       targetLineEnd: 14,
-      initialCode: `export function filterItems(items: Item[], query: string): Item[] {
+      initialCode: \`export function filterItems(items: Item[], query: string): Item[] {
   // YOUR CODE HERE
-}`,
-      solutionCode: `export function filterItems(items: Item[], query: string): Item[] {
+}\`,
+      solutionCode: \`export function filterItems(items: Item[], query: string): Item[] {
   const q = query.trim().toLowerCase();
   if (!q) return items;
   return items.filter(item => 
     item.name.toLowerCase().includes(q) || 
     item.category.toLowerCase().includes(q)
   );
-}`,
+}\`,
       testCases: [
         {
           id: 'test-1',
@@ -850,14 +858,14 @@ export default function App() {
           level: 4,
           type: 'partial_solution',
           title: 'Complete solution',
-          content: `export function filterItems(items: Item[], query: string): Item[] {
+          content: \`export function filterItems(items: Item[], query: string): Item[] {
   const q = query.trim().toLowerCase();
   if (!q) return items;
   return items.filter(item => 
     item.name.toLowerCase().includes(q) || 
     item.category.toLowerCase().includes(q)
   );
-}`,
+}\`,
         },
       ],
       status: 'IN_PROGRESS',
@@ -872,8 +880,8 @@ export default function App() {
       id: 'm-dyn-1',
       projectId: 'proj-dyn',
       stepNumber: 1,
-      title: `Generated ${projectName}`,
-      description: `Synthesized bespoke architecture matching "${prompt}".`,
+      title: \`Generated \${projectName}\`,
+      description: \`Synthesized bespoke architecture matching "\${prompt}".\`,
       conceptName: 'React Components',
       timestamp: Date.now() - 3600000,
       targetFile: 'src/App.tsx',
@@ -884,7 +892,7 @@ export default function App() {
   const project: Project = {
     id: 'proj-dyn',
     name: projectName,
-    description: `Interactive application tailored to: "${prompt}".`,
+    description: \`Interactive application tailored to: "\${prompt}".\`,
     techStack: {
       frontend: 'React 18',
       language: 'TypeScript',
@@ -900,3 +908,7 @@ export default function App() {
 
   return { project, checkpoints, milestones };
 }
+`;
+
+fs.writeFileSync(targetPath, code, 'utf8');
+console.log('Successfully updated universalPlanner.ts');

@@ -135,6 +135,26 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
     chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [chatMessages, lastEvaluation, revealedHintIndex]);
 
+  // Dynamic target language and placeholder detection
+  const getTargetLanguage = () => {
+    const target = project.files.find(f => f.id === activeCheckpoint?.targetFileId);
+    const name = target?.name || '';
+    if (name.endsWith('.css') || activeCheckpoint?.conceptId.includes('css')) return 'CSS';
+    if (name.endsWith('.js') || activeCheckpoint?.conceptId.includes('dom')) return 'JavaScript';
+    if (name.endsWith('.py') || activeCheckpoint?.conceptId.includes('python')) return 'Python';
+    if (name.endsWith('.html')) return 'HTML';
+    return 'TypeScript';
+  };
+
+  const getCodePlaceholder = () => {
+    const lang = getTargetLanguage();
+    if (lang === 'CSS') return '/* Write your CSS rules here... */';
+    if (lang === 'JavaScript') return '// Write your JavaScript code here...';
+    if (lang === 'Python') return '# Write your Python code here...';
+    if (lang === 'HTML') return '<!-- Write your HTML markup here... -->';
+    return '// Write your TypeScript code here...';
+  };
+
   // Handle Code-to-Preview Connection (Visual Inspector)
   const handleElementInspected = (filePath: string, line: number, conceptName: string) => {
     const targetFile = project.files.find(f => f.path === filePath || f.name === filePath || f.path.endsWith(filePath));
@@ -430,11 +450,13 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
               {/* Target File context pill */}
               {activeCheckpoint.targetFileId && (
-                <div className="mb-3 flex items-center gap-1.5 text-xs text-[#71717a] font-mono">
-                  <FileCode className="w-3.5 h-3.5 text-[#a1a1aa]" />
-                  <span>Modifying: </span>
+                <div className="mb-3 flex items-center gap-2 text-xs font-mono">
+                  <span className="px-2 py-0.5 rounded bg-[#18181b] text-emerald-400 font-semibold uppercase text-[10px] border border-[#27272a]">
+                    {getTargetLanguage()}
+                  </span>
+                  <span className="text-[#71717a]">Target: </span>
                   <span className="text-indigo-300 font-semibold">
-                    {project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || 'App.tsx'}
+                    {project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || 'style.css'}
                   </span>
                 </div>
               )}
@@ -447,7 +469,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                   activeCheckpoint.taskType === 'FIX_BUG') && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-[#71717a] font-mono">
-                      <span>YOUR IMPLEMENTATION (TypeScript)</span>
+                      <span>YOUR IMPLEMENTATION ({getTargetLanguage()})</span>
                       {activeCheckpoint.taskType === 'FIX_BUG' && (
                         <span className="text-rose-400 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" /> Bug identified in snippet
@@ -458,7 +480,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                       <textarea
                         value={userCode}
                         onChange={e => setUserCode(e.target.value)}
-                        placeholder="// Write your TypeScript code here..."
+                        placeholder={getCodePlaceholder()}
                         rows={7}
                         className="w-full bg-transparent p-3 text-xs font-mono text-emerald-400 resize-none outline-none leading-relaxed placeholder-[#3f3f46]"
                         spellCheck={false}

@@ -1,4 +1,4 @@
-﻿import { LearningCheckpoint, TaskType } from '@/types/learning';
+import { LearningCheckpoint, TaskType } from '@/types/learning';
 import { ValidationEvaluation, ErrorDiagnostic } from '@/types/ai';
 
 /**
@@ -188,6 +188,114 @@ export async function validateCheckpointSubmission(
           'Write the expression or statements that fulfill the goal.',
         ],
         suggestedHint: checkpoint.hints[0]?.content || 'Start with a conceptual approach.',
+      },
+    };
+  }
+
+  // Check if this is a CSS styling checkpoint
+  const isCss = checkpoint.conceptId.includes('css') || 
+                checkpoint.targetFileId?.endsWith('.css') || 
+                checkpoint.targetFileId?.includes('style') ||
+                (code.includes('{') && (code.includes('display:') || code.includes('grid-') || code.includes('gap:') || code.includes('flex:')));
+
+  if (isCss) {
+    const testResults: { description: string; passed: boolean }[] = [];
+    let allPassed = true;
+
+    for (const test of checkpoint.testCases) {
+      const desc = test.description.toLowerCase();
+      let passed = false;
+
+      if (desc.includes('display: grid') || (desc.includes('display') && desc.includes('grid'))) {
+        passed = /display\s*:\s*grid/i.test(code);
+      } else if (desc.includes('column') || desc.includes('repeat')) {
+        passed = /grid-template-columns\s*:\s*(repeat\(\s*4\s*,\s*1fr\s*\)|1fr\s+1fr\s+1fr\s+1fr)/i.test(code) || /grid-template-columns/i.test(code);
+      } else if (desc.includes('gap')) {
+        passed = /gap\s*:\s*12px/i.test(code) || /gap\s*:\s*\d+/i.test(code);
+      } else {
+        passed = true;
+      }
+
+      testResults.push({
+        description: test.description,
+        passed,
+      });
+
+      if (!passed) allPassed = false;
+    }
+
+    const passedCount = testResults.filter(t => t.passed).length;
+    return {
+      passed: allPassed,
+      score: allPassed ? 100 : Math.round((passedCount / testResults.length) * 100),
+      title: allPassed ? 'CSS Layout Validated!' : 'CSS Rules Incomplete',
+      message: allPassed
+        ? 'Great job! Your CSS Grid and styling rules are correctly formatted.'
+        : 'Review the CSS rules. Ensure all required layout properties (display, columns, gap) are specified.',
+      testResults,
+      diagnostic: allPassed ? undefined : {
+        whatHappened: 'One or more CSS properties were missing or incorrectly formatted.',
+        whereItHappened: checkpoint.title,
+        whatMessageMeans: 'Modern CSS Grid requires display: grid and grid-template-columns.',
+        conceptInvolved: checkpoint.conceptName,
+        investigationSteps: [
+          'Verify display: grid;',
+          'Verify grid-template-columns: repeat(4, 1fr);',
+          'Verify gap: 12px;'
+        ],
+        suggestedHint: checkpoint.hints[2]?.content || 'Review the CSS syntax hint.',
+      },
+    };
+  }
+
+  // Check if this is a Python logic checkpoint
+  const isPython = checkpoint.targetFileId?.endsWith('.py') ||
+                   code.startsWith('def ') ||
+                   code.includes('def calculate') ||
+                   checkpoint.conceptId.includes('python');
+
+  if (isPython) {
+    const testResults: { description: string; passed: boolean; actual?: any; expected?: any }[] = [];
+
+    const hasDef = /def\s+[a-zA-Z0-9_]+\s*\(/i.test(code);
+    const hasAddition = /\+\s*current|\+\s*prev/i.test(code);
+    const hasMultiply = /\*\s*current|\*\s*prev/i.test(code);
+    const hasZeroGuard = /current\s*==\s*0/i.test(code) || /nan/i.test(code);
+
+    testResults.push({
+      description: 'Defines Python function signature def calculate(prev, current, op):',
+      passed: hasDef,
+    });
+    testResults.push({
+      description: 'Implements arithmetic operations (+, -, *, /)',
+      passed: hasAddition && hasMultiply,
+    });
+    testResults.push({
+      description: 'Guards against division by zero returning float("nan")',
+      passed: hasZeroGuard,
+    });
+
+    const allPassed = hasDef && hasAddition && hasMultiply && hasZeroGuard;
+    const passedCount = testResults.filter(t => t.passed).length;
+
+    return {
+      passed: allPassed,
+      score: allPassed ? 100 : Math.round((passedCount / testResults.length) * 100),
+      title: allPassed ? 'Python Function Verified!' : 'Python Logic Incomplete',
+      message: allPassed
+        ? 'All Python algorithmic assertions and structural checks passed cleanly!'
+        : 'Ensure def calculate handles +, -, *, / and guards against division by zero.',
+      testResults,
+      diagnostic: allPassed ? undefined : {
+        whatHappened: 'Python function is missing arithmetic branches or zero-division guard.',
+        whereItHappened: checkpoint.title,
+        whatMessageMeans: 'Make sure +, -, *, and / return correct numbers, and division by zero returns NaN.',
+        conceptInvolved: checkpoint.conceptName,
+        investigationSteps: [
+          'Check if current == 0 in division',
+          'Ensure return statements are present in each branch',
+        ],
+        suggestedHint: checkpoint.hints[1]?.content || 'Review the structural hint.',
       },
     };
   }

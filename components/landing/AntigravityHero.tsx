@@ -18,28 +18,35 @@ import {
 import { InterventionLevel } from '@/types/project';
 
 interface AntigravityHeroProps {
-  onStartProject: (prompt: string, level: InterventionLevel, experience: string) => void;
+  onStartProject: (prompt: string, level: InterventionLevel, experience: string, techStack?: string) => void;
 }
 
 export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject }) => {
   const [prompt, setPrompt] = useState('');
   const [interventionLevel, setInterventionLevel] = useState<InterventionLevel>('guided');
   const [experience, setExperience] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [techStack, setTechStack] = useState<string>('auto');
   const [isPlanning, setIsPlanning] = useState(false);
   const [planningStep, setPlanningStep] = useState(0);
 
   const quickPrompts = [
     {
-      title: 'Interactive Modern Calculator',
-      tag: 'Pure Math & State',
-      desc: 'React 18 & TypeScript calculator with grid keypad, arithmetic operations, and precision formatting.',
-      prompt: 'Build me a simple calculator with arithmetic operations and modern keypad using React and TypeScript.',
+      title: 'Vanilla JS & CSS Modern Calculator',
+      tag: 'JavaScript + CSS',
+      desc: 'Native web standards: HTML5 keypad, modern CSS Grid layout, and pure ES6 DOM calculations without frameworks.',
+      prompt: 'Build me a simple calculator with vanilla JavaScript, CSS Grid and HTML5.',
     },
     {
-      title: 'Smart Expense Tracker',
-      tag: 'Financial Dashboard',
-      desc: 'React, TypeScript, Array methods, summary cards, and financial transactions.',
-      prompt: 'Build me a smart expense tracker with category summaries, add expense form, and transaction list using React, TypeScript, and Tailwind CSS.',
+      title: 'Python Arithmetic & Logic Engine',
+      tag: 'Python 3',
+      desc: 'Python terminal engine with pure functions, zero-division error handling, and interactive console runner.',
+      prompt: 'Build me a calculator using Python with zero-division error handling.',
+    },
+    {
+      title: 'Interactive React Calculator',
+      tag: 'React + TypeScript',
+      desc: 'React 18 & TypeScript calculator with grid keypad, arithmetic operations, and precision formatting.',
+      prompt: 'Build me a simple calculator with arithmetic operations and modern keypad using React and TypeScript.',
     },
     {
       title: 'Modern Task Hub',
@@ -48,16 +55,16 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
       prompt: 'Build me a task management website using React, TypeScript and Tailwind CSS with priority tagging and status filters.',
     },
     {
-      title: 'Live Weather Dashboard',
-      tag: 'Async / API Calls',
-      desc: 'Weather forecast cards, city search, condition badges, and async fetch data flow.',
-      prompt: 'Build a weather dashboard with search, 5-day forecast cards, and temperature charts.',
+      title: 'Smart Expense Tracker',
+      tag: 'Financial Dashboard',
+      desc: 'React, TypeScript, Array methods, summary cards, and financial transactions.',
+      prompt: 'Build me a smart expense tracker with category summaries, add expense form, and transaction list using React, TypeScript, and Tailwind CSS.',
     },
     {
-      title: 'Habit & Streak Tracker',
-      tag: 'Data Modeling',
-      desc: 'Daily check-in habit board with completion streaks, calendar cards, and stats.',
-      prompt: 'Build a daily habit tracker with weekly streaks, completion toggles, and habit statistics.',
+      title: 'Vanilla Web Notes Studio',
+      tag: 'HTML + CSS + JS',
+      desc: 'Local browser notes app with real-time DOM card rendering and CSS transitions.',
+      prompt: 'Build me a notes app using vanilla JavaScript and CSS.',
     },
   ];
 
@@ -72,7 +79,7 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
     setTimeout(() => setPlanningStep(3), 1000);
     setTimeout(() => setPlanningStep(4), 1500);
     setTimeout(() => {
-      onStartProject(finalPrompt, interventionLevel, experience);
+      onStartProject(finalPrompt, interventionLevel, experience, techStack);
     }, 2000);
   };
 
@@ -174,6 +181,22 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
                   <option value="tutor" className="bg-slate-900 text-slate-200">Tutor (User Heavy)</option>
                   <option value="collaborative" className="bg-slate-900 text-slate-200">Collaborative</option>
                   <option value="ai" className="bg-slate-900 text-slate-200">AI Builder (Fast)</option>
+                </select>
+              </div>
+
+              {/* Language / Stack pill */}
+              <div className="flex items-center space-x-1 bg-slate-950/70 border border-slate-800 rounded-xl px-2.5 py-1.5">
+                <span className="text-slate-500 text-[11px]">Stack:</span>
+                <select
+                  value={techStack}
+                  onChange={(e) => setTechStack(e.target.value)}
+                  className="bg-transparent text-slate-300 font-medium focus:outline-none cursor-pointer text-xs"
+                >
+                  <option value="auto" className="bg-slate-900 text-slate-200">Auto-detect from prompt</option>
+                  <option value="vanilla_web" className="bg-slate-900 text-slate-200">Vanilla JS + CSS + HTML5</option>
+                  <option value="react_ts" className="bg-slate-900 text-slate-200">React 18 + TypeScript + Tailwind</option>
+                  <option value="react_css" className="bg-slate-900 text-slate-200">React + Custom CSS</option>
+                  <option value="python" className="bg-slate-900 text-slate-200">Python 3 (Console)</option>
                 </select>
               </div>
             </div>

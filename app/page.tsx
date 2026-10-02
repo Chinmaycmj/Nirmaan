@@ -23,10 +23,11 @@ export default function WorkspacePage() {
   const handleStartProjectFromHero = async (
     userPrompt: string,
     level: InterventionLevel,
-    experience: string
+    experience: string,
+    techStack?: string
   ) => {
     setLastPrompt(userPrompt);
-    const result = await aiService.generateProjectFromPrompt(userPrompt, experience, level);
+    const result = await aiService.generateProjectFromPrompt(userPrompt, experience, level, techStack);
     result.project.interventionLevel = level;
     setProject(result.project);
     setCheckpoints(result.checkpoints);

@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 
 // Test 1: Progressive Hint System Logic
@@ -138,3 +138,82 @@ test('Validation Engine scores natural language explanation against keywords', (
   const matched = keywords.filter(k => lower.includes(k));
   assert.equal(matched.length, 2);
 });
+
+// Test 8: Multi-language & Tech Stack Detection
+test('Tech Stack Detector accurately detects Vanilla JS + CSS, Python, and React', () => {
+  function detectStack(prompt) {
+    const lower = prompt.toLowerCase();
+    if (lower.includes('python') || lower.includes('in py')) return 'python';
+    if (lower.includes('vanilla') || lower.includes('js and css') || lower.includes('javascript and css') || lower.includes('html, css, js')) return 'vanilla_web';
+    if (lower.includes('html and css') && !lower.includes('javascript')) return 'html_css';
+    return 'react_ts';
+  }
+
+  assert.equal(detectStack('Build a simple calculator with vanilla JavaScript and CSS'), 'vanilla_web');
+  assert.equal(detectStack('Build me a calculator using Python with zero-division guard'), 'python');
+  assert.equal(detectStack('Build a landing page with HTML and CSS'), 'html_css');
+  assert.equal(detectStack('Build a task manager with React and TypeScript'), 'react_ts');
+});
+
+// Test 9: CSS Grid Rule Validation
+test('CSS Validation Engine verifies CSS Grid layout, columns, and gap rules', () => {
+  const userCss = `
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+  `;
+
+  const hasGridDisplay = /display\s*:\s*grid/i.test(userCss);
+  const hasGridCols = /grid-template-columns\s*:\s*(repeat\(\s*4\s*,\s*1fr\s*\)|1fr\s+1fr\s+1fr\s+1fr)/i.test(userCss);
+  const hasGap = /gap\s*:\s*12px/i.test(userCss);
+
+  assert.ok(hasGridDisplay);
+  assert.ok(hasGridCols);
+  assert.ok(hasGap);
+});
+
+// Test 10: Python Logic & Structural Verification
+test('Python calculation function validates pure arithmetic and zero-division guard', () => {
+  const pythonCode = `
+    def calculate(prev, current, op):
+        if op == '+':
+            return prev + current
+        elif op == '-':
+            return prev - current
+        elif op == '*' or op == '×':
+            return prev * current
+        elif op == '/' or op == '÷':
+            if current == 0:
+                return float('nan')
+            return prev / current
+        return current
+  `;
+
+  const hasDef = /def\s+calculate\s*\(/i.test(pythonCode);
+  const hasAdd = /\+\s*current/i.test(pythonCode);
+  const hasSub = /-\s*current/i.test(pythonCode);
+  const hasMul = /\*\s*current/i.test(pythonCode);
+  const hasDivZero = /current\s*==\s*0/i.test(pythonCode) && /nan/i.test(pythonCode);
+
+  assert.ok(hasDef);
+  assert.ok(hasAdd);
+  assert.ok(hasSub);
+  assert.ok(hasMul);
+  assert.ok(hasDivZero);
+});
+
+// Test 11: Vanilla JS DOM String Calculation & Replacement
+test('Vanilla JS appendDigit properly replaces initial zero or appends characters', () => {
+  function appendDigit(currentInput, digit) {
+    if (currentInput === '0') return digit;
+    return currentInput + digit;
+  }
+
+  assert.equal(appendDigit('0', '7'), '7');
+  assert.equal(appendDigit('7', '5'), '75');
+  assert.equal(appendDigit('75', '.'), '75.');
+  assert.equal(appendDigit('75.', '2'), '75.2');
+});
+

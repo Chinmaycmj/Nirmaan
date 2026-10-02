@@ -22,7 +22,8 @@ export class AIProviderService {
   public async generateProjectFromPrompt(
     prompt: string,
     experienceLevel: string = 'beginner',
-    preference: string = 'guided'
+    preference: string = 'guided',
+    techStackChoice?: string
   ): Promise<{
     project: Project;
     checkpoints: LearningCheckpoint[];
@@ -42,6 +43,7 @@ export class AIProviderService {
             model: this.settings.model,
             experienceLevel,
             preference,
+            techStackChoice,
           }),
         });
 
@@ -57,7 +59,7 @@ export class AIProviderService {
     }
 
     // High-performance Universal Planner & Synthesis Engine
-    return routeOrSynthesizeProject(prompt);
+    return routeOrSynthesizeProject(prompt, techStackChoice);
   }
 
   public getConceptExplanation(

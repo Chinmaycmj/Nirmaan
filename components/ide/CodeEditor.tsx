@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useRef } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
@@ -70,6 +70,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   const mapLanguage = (lang: string) => {
     if (lang === 'tsx' || lang === 'jsx') return 'typescript';
+    if (lang === 'js') return 'javascript';
+    if (lang === 'py') return 'python';
     return lang;
   };
 
