@@ -1,4 +1,4 @@
-﻿import { AISettings, ConceptExplanation, ExplanationLevel } from '@/types/ai';
+import { AISettings, ConceptExplanation, ExplanationLevel } from '@/types/ai';
 import { routeOrSynthesizeProject } from './universalPlanner';
 import { Project } from '@/types/project';
 import { LearningCheckpoint, ProjectMilestone } from '@/types/learning';
@@ -150,6 +150,37 @@ export class AIProviderService {
       intermediateExplanation: 'Follows idiomatic React and TypeScript paradigms for maintainable frontends.',
       advancedExplanation: 'Optimized for modularity, type inference, and React Fiber render scheduling.',
       commonPitfalls: ['Unclear variable naming', 'Lack of error boundary protection'],
+    };
+  }
+
+  public async generateChatResponse(
+    message: string,
+    context?: string,
+    settings?: AISettings
+  ): Promise<{ text: string }> {
+    const lower = message.toLowerCase();
+    if (lower.includes('why') || lower.includes('exist')) {
+      return {
+        text: `In this architecture, components and utilities are separated to ensure high cohesion and loose coupling. Keeping business calculations pure makes them 100% testable and predictable.`
+      };
+    }
+    if (lower.includes('state') || lower.includes('usestate')) {
+      return {
+        text: `React state (useState) provides component-level memory across re-renders. When updated via the setter, React's Fiber reconciler schedules a virtual DOM diff and smoothly patches the real DOM.`
+      };
+    }
+    if (lower.includes('type') || lower.includes('interface')) {
+      return {
+        text: `TypeScript interfaces establish compile-time contracts. They define the shape of your data without adding any runtime overhead in the compiled JavaScript.`
+      };
+    }
+    if (lower.includes('error') || lower.includes('bug') || lower.includes('fail')) {
+      return {
+        text: `Let's break this down: Check your function parameters and return statement. Look at the hints tab above for progressive guidance from conceptual hints to partial solutions.`
+      };
+    }
+    return {
+      text: `Great question regarding "${message}". In ${context || 'this project'}, we maintain strict TypeScript type safety and idiomatic React component patterns. Check the live preview on the right or explore the Code tab to see how the pieces connect!`
     };
   }
 }
