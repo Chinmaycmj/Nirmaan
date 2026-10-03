@@ -38,18 +38,38 @@ export function parseGithubUrl(rawUrl: string): GithubRepoInfo {
  */
 export function detectLanguageFromFilename(filename: string): ProjectFile['language'] {
   const lower = filename.toLowerCase();
+  const name = lower.split('/').pop() || lower;
+
+  // Dotfiles and non-code config files must never be falsely marked as JavaScript/code
+  if (name.endsWith('.json')) return 'json';
+  if (name.startsWith('.') || name.includes('ignore') || name.includes('license') || name === 'procfile') {
+    return 'markdown';
+  }
+  if (name.endsWith('rc')) return 'json';
   if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'html';
-  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return 'javascript';
+  if (lower.endsWith('.tsx')) return 'tsx';
   if (lower.endsWith('.jsx')) return 'jsx';
   if (lower.endsWith('.ts')) return 'typescript';
-  if (lower.endsWith('.tsx')) return 'tsx';
+  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return 'javascript';
   if (lower.endsWith('.css') || lower.endsWith('.scss') || lower.endsWith('.sass')) return 'css';
   if (lower.endsWith('.py')) return 'python';
   if (lower.endsWith('.cpp') || lower.endsWith('.cc') || lower.endsWith('.cxx') || lower.endsWith('.c') || lower.endsWith('.h') || lower.endsWith('.hpp')) return 'cpp';
   if (lower.endsWith('.java')) return 'java';
-  if (lower.endsWith('.json')) return 'json';
   if (lower.endsWith('.md') || lower.endsWith('.markdown')) return 'markdown';
   return 'javascript';
+}
+
+/**
+ * Checks whether a path corresponds to a configuration file, lockfile, or dotfile.
+ */
+export function isConfigFileOrDotfile(path: string): boolean {
+  const p = path.toLowerCase();
+  const name = p.split('/').pop() || p;
+  if (name.startsWith('.')) return true; // .gitignore, .eslintrc, .env, etc.
+  if (name.includes('lock') || name.includes('license') || name.includes('readme')) return true;
+  if (name.endsWith('.config.js') || name.endsWith('.config.ts') || name.endsWith('.config.mjs')) return true;
+  if (name === 'tsconfig.json' || name === 'jsconfig.json' || name === 'components.json' || name === 'package-lock.json') return true;
+  return false;
 }
 
 /**
@@ -71,6 +91,36 @@ export function isTextFile(filename: string): boolean {
  * Fetches real repository files directly from GitHub.
  * Uses the recursive tree API or contents API, then retrieves raw file contents.
  */
+export function getTreeEntryPriority(path: string): number {
+  const lower = path.toLowerCase();
+  const name = lower.split('/').pop() || lower;
+
+  // Dotfiles and lockfiles are severely demoted so real source files are prioritized
+  if (isConfigFileOrDotfile(path)) return 1000;
+
+  // High priority primary entrypoint files
+  if (name === 'app.tsx' || name === 'app.jsx' || name === 'app.js') return 1;
+  if (name === 'page.tsx' || name === 'page.jsx' || name === 'page.js') return 2;
+  if (name === 'dashboard.tsx' || name === 'dashboard.jsx' || name === 'dashboard.js') return 3;
+  if (name === 'index.tsx' || name === 'index.jsx' || name === 'index.js' || name === 'index.html') return 4;
+  if (name === 'main.tsx' || name === 'main.jsx' || name === 'main.py' || name === 'main.java' || name === 'main.cpp') return 5;
+
+  // Real source folders
+  if (lower.includes('components/') || lower.includes('src/') || lower.includes('app/') || lower.includes('lib/') || lower.includes('pages/')) {
+    if (lower.endsWith('.tsx') || lower.endsWith('.jsx') || lower.endsWith('.ts') || lower.endsWith('.js')) return 10;
+    if (lower.endsWith('.py') || lower.endsWith('.java') || lower.endsWith('.cpp') || lower.endsWith('.html')) return 12;
+    return 15;
+  }
+
+  // General source files
+  if (lower.endsWith('.tsx') || lower.endsWith('.jsx') || lower.endsWith('.ts') || lower.endsWith('.js') || lower.endsWith('.py') || lower.endsWith('.java') || lower.endsWith('.cpp')) {
+    return 20;
+  }
+  if (lower.endsWith('.html') || lower.endsWith('.css')) return 25;
+
+  return 50;
+}
+
 export async function fetchRealGithubFiles(
   owner: string,
   repo: string,
@@ -116,12 +166,12 @@ export async function fetchRealGithubFiles(
       }
     }
 
-    // 2. Prioritize root-level files and primary source files
+    // 2. Prioritize real source files (App.tsx, page.tsx, src/, components/) over dotfiles & configs
     const prioritized = [...treeEntries].sort((a, b) => {
-      const aDepth = (a.path.match(/\//g) || []).length;
-      const bDepth = (b.path.match(/\//g) || []).length;
-      if (aDepth !== bDepth) return aDepth - bDepth; // Root files first
-      
+      const priorityA = getTreeEntryPriority(a.path);
+      const priorityB = getTreeEntryPriority(b.path);
+      if (priorityA !== priorityB) return priorityA - priorityB;
+
       const aScore = a.path.includes('resolved') ? -10 : a.path.endsWith('.html') ? -5 : a.path.endsWith('.js') ? -3 : 0;
       const bScore = b.path.includes('resolved') ? -10 : b.path.endsWith('.html') ? -5 : b.path.endsWith('.js') ? -3 : 0;
       return aScore - bScore;
@@ -177,6 +227,39 @@ export async function fetchRealGithubFiles(
 }
 
 /**
+ * Computes priority score for a project file to select the best primary learning file.
+ * Strongly deprioritizes dotfiles, lockfiles, configs, and documentation.
+ */
+export function getSourceFileScore(f: ProjectFile): number {
+  const name = f.name.toLowerCase();
+  const path = f.path.toLowerCase();
+
+  // Dotfiles, lockfiles, configs, licenses are demoted so they are NEVER selected as primary learning file
+  if (isConfigFileOrDotfile(f.path) || f.name.startsWith('.')) return -100;
+  if (f.language === 'markdown' || f.language === 'json') return -50;
+
+  // Real entrypoint and main components
+  if (name === 'app.tsx' || name === 'app.jsx' || name === 'app.js') return 100;
+  if (name === 'page.tsx' || name === 'dashboard.tsx' || name === 'home.tsx') return 95;
+  if (name === 'main.tsx' || name === 'main.jsx' || name === 'main.py' || name === 'main.java' || name === 'main.cpp') return 90;
+  if (name === 'index.tsx' || name === 'index.jsx' || name === 'index.js' || name === 'index.html') return 85;
+
+  // Real application code directories (src, components, app, lib, pages)
+  if (path.includes('components/') || path.includes('src/') || path.includes('app/') || path.includes('pages/')) {
+    if (['tsx', 'jsx', 'typescript', 'javascript', 'python', 'java', 'cpp'].includes(f.language)) {
+      return 70 + Math.min(15, (f.content ? f.content.split('\n').length : 0) / 10);
+    }
+  }
+
+  // Any other real source files
+  if (['tsx', 'jsx', 'typescript', 'javascript', 'python', 'java', 'cpp', 'html'].includes(f.language)) {
+    return 50 + Math.min(10, (f.content ? f.content.split('\n').length : 0) / 20);
+  }
+
+  return 10;
+}
+
+/**
  * Creates authentic learning checkpoints and milestones tailored to the imported repository files.
  */
 export function generateCurriculumForImportedRepo(
@@ -187,15 +270,9 @@ export function generateCurriculumForImportedRepo(
   checkpoints: LearningCheckpoint[];
   milestones: ProjectMilestone[];
 } {
-  // Find primary source file
-  const primaryFile = files.find(f => f.path.includes('resolved') && (f.language === 'html' || f.language === 'javascript')) ||
-                      files.find(f => f.name === 'index.html' || f.name.endsWith('.html')) ||
-                      files.find(f => f.name === 'main.py' || f.name === 'app.py' || f.name.endsWith('.py')) ||
-                      files.find(f => f.name === 'main.cpp' || f.name.endsWith('.cpp')) ||
-                      files.find(f => f.name === 'Main.java' || f.name.endsWith('.java')) ||
-                      files.find(f => f.name === 'App.tsx' || f.name === 'index.js' || f.name === 'app.js') ||
-                      files.find(f => f.language !== 'markdown' && f.language !== 'json') ||
-                      files[0];
+  // Find primary source file by scoring candidates (never picking .gitignore, configs, or lockfiles)
+  const sortedCandidates = [...files].sort((a, b) => getSourceFileScore(b) - getSourceFileScore(a));
+  const primaryFile = sortedCandidates[0] || files[0];
 
   const totalLines = files.reduce((acc, f) => acc + (f.content ? f.content.split('\n').length : 0), 0);
   const primaryLang = primaryFile ? primaryFile.language : 'javascript';
@@ -203,25 +280,37 @@ export function generateCurriculumForImportedRepo(
                       primaryLang === 'cpp' ? 'C++' : 
                       primaryLang === 'java' ? 'Java' : 
                       primaryLang === 'python' ? 'Python' : 
-                      primaryLang === 'tsx' || primaryLang === 'jsx' ? 'React' : 'JavaScript';
+                      primaryLang === 'tsx' || primaryLang === 'jsx' ? 'React / TypeScript' : 
+                      primaryLang === 'typescript' ? 'TypeScript' : 'JavaScript';
 
   // Extract meaningful snippet from primary file
   let snippet = '';
   let initialSkeleton = '';
   if (primaryFile && primaryFile.content) {
     const rawLines = primaryFile.content.split('\n');
-    // Find interesting section (e.g. navbar, function, class, or head)
     let startIdx = 0;
     for (let i = 0; i < rawLines.length; i++) {
-      const line = rawLines[i];
-      if (line.includes('<nav') || line.includes('.navbar') || line.includes('function') || line.includes('def ') || line.includes('class ') || line.includes('int main')) {
+      const line = rawLines[i].trim();
+      if (
+        line.startsWith('export default') ||
+        line.startsWith('export function') ||
+        line.startsWith('export const') ||
+        line.startsWith('function ') ||
+        line.startsWith('const ') ||
+        line.startsWith('def ') ||
+        line.startsWith('class ') ||
+        line.startsWith('public class') ||
+        line.startsWith('int main') ||
+        line.includes('<nav') ||
+        line.includes('.navbar')
+      ) {
         startIdx = i;
         break;
       }
     }
-    const slice = rawLines.slice(startIdx, Math.min(startIdx + 20, rawLines.length));
+    const slice = rawLines.slice(startIdx, Math.min(startIdx + 25, rawLines.length));
     snippet = slice.join('\n');
-    initialSkeleton = `// IMPLEMENT YOUR SOLUTION FOR ${primaryFile.name.toUpperCase()}\n// Study the reference lines on the left and implement your code here:\n\n` + 
+    initialSkeleton = `// Reference: ${primaryFile.name} from ${repoInfo.repo}\n// Implement your code based on the architecture on the left:\n\n` + 
                       slice.slice(0, 3).join('\n') + '\n    // ... write implementation ...\n';
   } else {
     snippet = `// ${repoInfo.repo} implementation\nconsole.log("Welcome to ${repoInfo.repo}");`;
@@ -236,7 +325,7 @@ export function generateCurriculumForImportedRepo(
       projectId,
       stepNumber: 1,
       title: `Core Architecture of ${primaryFile.name}`,
-      conceptId: `core_arch_${primaryLang}`,
+      conceptId: `repo_arch_${primaryLang}`,
       conceptName: `${displayLang} Architecture & Structure`,
       taskType: 'COMPLETE_CODE',
       language: primaryLang as any,
@@ -470,6 +559,161 @@ document.querySelectorAll('.order-btn').forEach(btn => {
         version: 1,
         contributions: [],
         content: `# ${repoInfo.repo}\n\nInteractive food delivery web application.`,
+      },
+    ];
+  }
+
+  // If repo is about banking / financial / wallet / aura
+  if (name.includes('bank') || name.includes('aura') || name.includes('wallet') || name.includes('fintech') || name.includes('pay')) {
+    return [
+      {
+        id: 'file-app-page-tsx',
+        projectId,
+        path: 'app/page.tsx',
+        name: 'page.tsx',
+        language: 'tsx',
+        version: 1,
+        contributions: [],
+        content: `'use client';
+
+import React, { useState } from 'react';
+
+export default function BankingDashboard() {
+  const [balance, setBalance] = useState(12450.75);
+  const [recipient, setRecipient] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transactions, setTransactions] = useState([
+    { id: 'tx-1', title: 'Salary Direct Deposit', amount: 4800.00, type: 'credit', date: 'Today' },
+    { id: 'tx-2', title: 'Smart Energy Utility', amount: 142.30, type: 'debit', date: 'Yesterday' },
+    { id: 'tx-3', title: 'Artisan Cafe', amount: 6.50, type: 'debit', date: 'Oct 01' },
+  ]);
+
+  const handleTransfer = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = parseFloat(transferAmount);
+    if (!num || num <= 0 || num > balance) return;
+    setBalance(prev => prev - num);
+    setTransactions(prev => [
+      { id: \`tx-\${Date.now()}\`, title: \`Transfer to \${recipient || 'Beneficiary'}\`, amount: num, type: 'debit', date: 'Just now' },
+      ...prev
+    ]);
+    setRecipient('');
+    setTransferAmount('');
+  };
+
+  return (
+    <div className="dashboard-container">
+      <header className="bank-header">
+        <div className="logo-group">
+          <h1>AuraBank</h1>
+          <span className="secure-badge">End-to-End Encrypted</span>
+        </div>
+        <div className="balance-card">
+          <span className="balance-label">Available Balance</span>
+          <span className="balance-amount">\${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        </div>
+      </header>
+
+      <main className="bank-grid">
+        <section className="transfer-card">
+          <h2>Instant Transfer</h2>
+          <form onSubmit={handleTransfer} className="transfer-form">
+            <input
+              type="text"
+              placeholder="Recipient Account or Tag"
+              value={recipient}
+              onChange={e => setRecipient(e.target.value)}
+              className="bank-input"
+            />
+            <input
+              type="number"
+              placeholder="Amount ($)"
+              value={transferAmount}
+              onChange={e => setTransferAmount(e.target.value)}
+              className="bank-input"
+            />
+            <button type="submit" className="transfer-btn">Send Funds</button>
+          </form>
+        </section>
+
+        <section className="activity-card">
+          <h2>Recent Activity</h2>
+          <div className="transactions-list">
+            {transactions.map(tx => (
+              <div key={tx.id} className="tx-item">
+                <div className="tx-info">
+                  <span className="tx-title">{tx.title}</span>
+                  <span className="tx-date">{tx.date}</span>
+                </div>
+                <span className={tx.type === 'credit' ? 'tx-credit' : 'tx-debit'}>
+                  {tx.type === 'credit' ? '+' : '-'}\${tx.amount.toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}`,
+      },
+      {
+        id: 'file-dashboard-component-tsx',
+        projectId,
+        path: 'components/Dashboard.tsx',
+        name: 'Dashboard.tsx',
+        language: 'tsx',
+        version: 1,
+        contributions: [],
+        content: `export interface Transaction {
+  id: string;
+  title: string;
+  amount: number;
+  type: 'credit' | 'debit';
+  date: string;
+}
+
+export function computeTotalNetBalance(initialBalance: number, ledger: Transaction[]): number {
+  return ledger.reduce((acc, curr) => {
+    return curr.type === 'credit' ? acc + curr.amount : acc - curr.amount;
+  }, initialBalance);
+}`,
+      },
+      {
+        id: 'file-style-css',
+        projectId,
+        path: 'app/globals.css',
+        name: 'globals.css',
+        language: 'css',
+        version: 1,
+        contributions: [],
+        content: `body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #FFF1E7;
+  color: #1c1917;
+}
+.dashboard-container { max-width: 1040px; margin: 0 auto; padding: 32px 20px; }
+.bank-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+.balance-card { background: #326080; color: #ffffff; padding: 16px 24px; border-radius: 16px; text-align: right; }
+.balance-amount { font-size: 24px; font-weight: 800; display: block; }
+.bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+.transfer-card, .activity-card { background: #ffffff; border: 1px solid #ebdcd0; border-radius: 20px; padding: 24px; box-shadow: 0 4px 12px rgba(50, 96, 128, 0.04); }
+.bank-input { width: 100%; box-sizing: border-box; padding: 12px 16px; border: 1px solid #ebdcd0; border-radius: 10px; margin-bottom: 12px; font-size: 14px; }
+.transfer-btn { width: 100%; padding: 12px; background: #326080; color: #ffffff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.tx-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f6e7db; }
+.tx-credit { color: #16a34a; font-weight: 700; font-family: monospace; }
+.tx-debit { color: #dc2626; font-weight: 700; font-family: monospace; }`,
+      },
+      {
+        id: 'file-readme-md',
+        projectId,
+        path: 'README.md',
+        name: 'README.md',
+        language: 'markdown',
+        version: 1,
+        contributions: [],
+        content: `# ${repoInfo.repo}\n\nHigh-scale Next.js & React banking application imported into Nirmaan Studio.`,
       },
     ];
   }

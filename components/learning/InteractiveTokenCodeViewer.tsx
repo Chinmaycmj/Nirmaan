@@ -238,7 +238,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
       </div>
 
       {/* Main Code Lines Container */}
-      <div className={`p-2 font-mono text-[12px] overflow-x-auto leading-relaxed max-h-72 custom-scrollbar ${
+      <div className={`p-2 font-mono text-[13px] md:text-sm overflow-x-auto leading-6 min-h-[220px] max-h-[380px] custom-scrollbar ${
         isSand ? 'bg-[#fbf7ee]' : 'bg-[#050608]'
       }`}>
         {lines.map((line, idx) => {
@@ -265,8 +265,8 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                       : 'hover:bg-zinc-900/40'
               }`}
             >
-              {/* Line Number */}
-              <span className={`w-8 shrink-0 text-right pr-3 select-none text-[11px] font-mono ${
+              {/* Line Number Gutter */}
+              <span className={`w-9 shrink-0 text-right pr-3 select-none text-[12px] font-mono border-r border-[#ebdcd0]/60 mr-3 ${
                 isSelected
                   ? isSand
                     ? 'text-[#326080] font-black'
@@ -279,7 +279,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               </span>
 
               {/* Line Content */}
-              <div className="flex-1 whitespace-pre pr-28">
+              <div className="flex-1 whitespace-pre pr-28 text-[13px] md:text-sm leading-6">
                 {line || ' '}
               </div>
 

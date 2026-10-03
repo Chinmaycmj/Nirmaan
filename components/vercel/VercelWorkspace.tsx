@@ -85,10 +85,49 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
   const [isFilesDrawerOpen, setIsFilesDrawerOpen] = useState<boolean>(false);
   const [isGithubModalOpen, setIsGithubModalOpen] = useState<boolean>(false);
 
-  // Companion Preview controls
-  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(true);
+  // Companion Preview controls (default to false so coding studio takes 100% full width)
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [previewKey, setPreviewKey] = useState<number>(0);
+
+  // Synchronized Code Editor Studio State
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const gutterRef = useRef<HTMLDivElement>(null);
+  const [cursorLine, setCursorLine] = useState<number>(1);
+  const [cursorCol, setCursorCol] = useState<number>(1);
+
+  const handleEditorScroll = () => {
+    if (textareaRef.current && gutterRef.current) {
+      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
+
+  const updateCursorPosition = () => {
+    if (textareaRef.current) {
+      const pos = textareaRef.current.selectionStart || 0;
+      const linesUpToCursor = userCode.substring(0, pos).split('\n');
+      setCursorLine(linesUpToCursor.length);
+      setCursorCol((linesUpToCursor[linesUpToCursor.length - 1]?.length || 0) + 1);
+    }
+  };
+
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const updated = userCode.substring(0, start) + '  ' + userCode.substring(end);
+      setUserCode(updated);
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
+          updateCursorPosition();
+        }
+      }, 0);
+    }
+  };
 
   // Checkpoint Task interactive state
   const [userCode, setUserCode] = useState<string>('');
@@ -728,26 +767,36 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                         />
                       </div>
 
-                      {/* COLUMN 2: SPACIOUS USER WORKSPACE (MARINA / IVORY) */}
+                      {/* COLUMN 2: SPACIOUS USER WORKSPACE (LINE-NUMBERED CODE STUDIO) */}
                       <div className="flex flex-col rounded-2xl border border-[#ebdcd0] bg-white overflow-hidden focus-within:border-[#326080] focus-within:ring-2 focus-within:ring-[#B5D2E6]/50 shadow-sm h-full min-h-[440px] transition-all">
-                        <div className="h-10 px-4 bg-white/80 border-b border-[#ebdcd0] flex items-center justify-between shrink-0">
+                        {/* Editor Header */}
+                        <div className="h-11 px-4 bg-white/90 border-b border-[#ebdcd0] flex items-center justify-between shrink-0">
                           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1c1917]">
                             <Code2 className="w-4 h-4 text-[#326080]" />
-                            <span>YOUR IMPLEMENTATION ({getTargetLanguage()})</span>
+                            <span>YOUR IMPLEMENTATION</span>
+                            <span className="text-[11px] font-normal text-[#78716c] font-sans">
+                              • {project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || 'app.js'}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => setUserCode(activeCheckpoint.initialCode || '')}
-                              className="text-[11px] text-[#78716c] hover:text-[#1c1917] px-2.5 py-0.5 rounded-lg bg-white/90 hover:bg-[#f6e7db] border border-[#ebdcd0] transition-colors font-mono"
+                              onClick={() => {
+                                setUserCode(activeCheckpoint.initialCode || '');
+                                updateCursorPosition();
+                              }}
+                              className="text-[11px] text-[#78716c] hover:text-[#1c1917] px-2.5 py-1 rounded-lg bg-white/90 hover:bg-[#f6e7db] border border-[#ebdcd0] transition-colors font-mono"
                               title="Reset to template"
                             >
                               Reset
                             </button>
                             <button
                               type="button"
-                              onClick={() => setUserCode(activeCheckpoint.solutionCode || '')}
-                              className="text-[11px] text-white px-2.5 py-0.5 rounded-lg bg-[#326080] hover:bg-[#254b66] transition-colors font-mono font-medium shadow-sm"
+                              onClick={() => {
+                                setUserCode(activeCheckpoint.solutionCode || '');
+                                updateCursorPosition();
+                              }}
+                              className="text-[11px] text-white px-2.5 py-1 rounded-lg bg-[#326080] hover:bg-[#254b66] transition-colors font-mono font-medium shadow-sm"
                               title="Load reference code"
                             >
                               Load Reference
@@ -755,13 +804,59 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                           </div>
                         </div>
 
-                        <textarea
-                          value={userCode}
-                          onChange={e => setUserCode(e.target.value)}
-                          placeholder={getCodePlaceholder()}
-                          className="flex-1 w-full bg-[#ffffff] p-4 text-xs md:text-sm font-mono text-[#0f172a] resize-none outline-none leading-relaxed placeholder-[#a8a29e] min-h-[380px]"
-                          spellCheck={false}
-                        />
+                        {/* Editor Body with Synchronized Line Numbers Gutter */}
+                        <div className="flex-1 flex overflow-hidden min-h-[380px] bg-white relative">
+                          {/* Line Numbers Gutter */}
+                          <div 
+                            ref={gutterRef}
+                            className="w-12 md:w-14 shrink-0 bg-[#faf6ee] border-r border-[#ebdcd0] py-3.5 pr-2.5 text-right font-mono text-[12px] md:text-[13px] leading-6 text-[#a8a29e] select-none overflow-hidden"
+                            aria-hidden="true"
+                          >
+                            {Array.from({ length: Math.max(1, (userCode ? userCode.split('\n').length : 1)) }).map((_, i) => (
+                              <div 
+                                key={i}
+                                className={`transition-colors ${cursorLine === i + 1 ? 'text-[#326080] font-bold' : ''}`}
+                              >
+                                {i + 1}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Code Input Area with Tab Key Support & Scroll Sync */}
+                          <textarea
+                            ref={textareaRef}
+                            value={userCode}
+                            onChange={e => {
+                              setUserCode(e.target.value);
+                              updateCursorPosition();
+                            }}
+                            onScroll={handleEditorScroll}
+                            onKeyDown={handleEditorKeyDown}
+                            onClick={updateCursorPosition}
+                            onKeyUp={updateCursorPosition}
+                            onSelect={updateCursorPosition}
+                            placeholder={getCodePlaceholder()}
+                            className="flex-1 w-full bg-white py-3.5 px-3 font-mono text-[13px] md:text-sm text-[#0f172a] resize-none outline-none leading-6 placeholder-[#a8a29e] whitespace-pre overflow-x-auto selection:bg-[#B5D2E6]/60"
+                            spellCheck={false}
+                          />
+                        </div>
+
+                        {/* Editor Status Bar */}
+                        <div className="h-7 px-4 bg-[#faf6ee] border-t border-[#ebdcd0] flex items-center justify-between text-[11px] font-mono text-[#78716c] shrink-0">
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold text-[#326080]">
+                              Ln {cursorLine}, Col {cursorCol}
+                            </span>
+                            <span>Spaces: 2</span>
+                            <span>UTF-8</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span>{(userCode ? userCode.split('\n').length : 0)} lines</span>
+                            <span className="px-1.5 py-0.5 rounded bg-[#f6e7db] text-[#326080] font-bold text-[10px]">
+                              {getTargetLanguage()}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -919,10 +1014,10 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         </div>
 
         {/* ----------------------------------------------------------------------- */}
-        {/* PANE 2: COMPANION PREVIEW WINDOW (ASIDE OR SMALL)                       */}
+        {/* PANE 2: COMPANION PREVIEW WINDOW (OPEN ONLY WHEN REQUESTED BY USER)      */}
         {/* ----------------------------------------------------------------------- */}
-        {isPreviewOpen ? (
-          <div className="w-[380px] xl:w-[430px] shrink-0 border-l border-[#ebdcd0] bg-white/95 flex flex-col h-full z-10 animate-fadeIn shadow-sm">
+        {isPreviewOpen && (
+          <div className="w-[380px] xl:w-[440px] shrink-0 border-l border-[#ebdcd0] bg-white/95 flex flex-col h-full z-10 animate-fadeIn shadow-sm">
             {/* Companion Browser Toolbar */}
             <div className="h-12 px-3 border-b border-[#ebdcd0] flex items-center justify-between shrink-0 bg-white/80">
               <div className="flex items-center gap-1.5 text-xs text-[#1c1917] font-bold">
@@ -960,9 +1055,9 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                 <button
                   onClick={() => setIsPreviewOpen(false)}
                   className="p-1 hover:text-[#1c1917] text-[#78716c] transition-colors rounded hover:bg-[#f6e7db] ml-1"
-                  title="Minimize Preview Window"
+                  title="Close Preview Window"
                 >
-                  <PanelRightClose className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -979,23 +1074,6 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                 />
               </div>
             </div>
-          </div>
-        ) : (
-          /* Minimized Preview Strip */
-          <div className="w-10 border-l border-[#ebdcd0] bg-white/95 flex flex-col items-center py-4 shrink-0 select-none">
-            <button
-              onClick={() => setIsPreviewOpen(true)}
-              className="p-2 rounded-xl bg-[#f6e7db] hover:bg-[#ebdcd0] text-[#326080] shadow-sm transition-colors"
-              title="Expand Companion Live Preview"
-            >
-              <PanelRightOpen className="w-4 h-4 text-[#326080]" />
-            </button>
-            <span 
-              onClick={() => setIsPreviewOpen(true)}
-              className="mt-6 text-[10px] font-mono uppercase tracking-widest text-[#78716c] rotate-90 whitespace-nowrap cursor-pointer hover:text-[#1c1917]"
-            >
-              Live Preview
-            </span>
           </div>
         )}
 

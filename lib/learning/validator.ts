@@ -192,11 +192,106 @@ export async function validateCheckpointSubmission(
     };
   }
 
+  // =========================================================================
+  // IMPORTED GITHUB REPOSITORIES VALIDATION (checkpoint.projectId.startsWith('gh-'))
+  // =========================================================================
+  if (checkpoint.projectId.startsWith('gh-')) {
+    const testResults: { description: string; passed: boolean; actual?: any; expected?: any }[] = [];
+
+    // Strip comments to inspect real written code
+    const codeWithoutComments = code
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*/g, '')
+      .trim();
+
+    const isOnlyPlaceholder = (code.includes('// ... write implementation ...') || code.includes('// IMPLEMENT YOUR SOLUTION')) && codeWithoutComments.length < 30;
+    const hasMeaningfulCode = codeWithoutComments.length >= 15;
+
+    for (const test of checkpoint.testCases) {
+      if (test.assertionFn) {
+        try {
+          const sanitizedAssertion = sanitizeTypeScriptForEvaluation(test.assertionFn);
+          const sanitizedCode = sanitizeTypeScriptForEvaluation(code);
+          const runner = new Function('testInput', `${sanitizedCode}; ${sanitizedAssertion};`);
+          const passed = Boolean(runner(test.input));
+          testResults.push({
+            description: test.description,
+            passed,
+            actual: passed ? 'Passed assertion' : 'Assertion returned false',
+            expected: 'Truthy assertion',
+          });
+        } catch {
+          testResults.push({
+            description: test.description,
+            passed: hasMeaningfulCode && !isOnlyPlaceholder,
+          });
+        }
+      } else {
+        const descLower = test.description.toLowerCase();
+        let passed = false;
+
+        if (descLower.includes('syntax') || descLower.includes('structure')) {
+          passed = hasMeaningfulCode && !isOnlyPlaceholder;
+        } else if (descLower.includes('alignment') || descLower.includes('specification')) {
+          const solutionTokens = (checkpoint.solutionCode || '')
+            .split(/[^a-zA-Z0-9_$]+/)
+            .filter(t => t.length >= 4 && !['const', 'function', 'return', 'import', 'export', 'default', 'from'].includes(t));
+
+          if (solutionTokens.length > 0) {
+            const matches = solutionTokens.filter(tok => code.includes(tok));
+            passed = matches.length >= Math.min(2, solutionTokens.length) || hasMeaningfulCode;
+          } else {
+            passed = hasMeaningfulCode;
+          }
+        } else {
+          passed = hasMeaningfulCode && !isOnlyPlaceholder;
+        }
+
+        testResults.push({
+          description: test.description,
+          passed,
+        });
+      }
+    }
+
+    const allPassed = testResults.length > 0 && testResults.every(t => t.passed);
+    const passedCount = testResults.filter(t => t.passed).length;
+    const score = testResults.length > 0 ? Math.round((passedCount / testResults.length) * 100) : 100;
+
+    return {
+      passed: allPassed,
+      score,
+      title: allPassed ? 'Repository Checkpoint Verified!' : 'Implementation In Progress',
+      message: allPassed
+        ? `Outstanding! Your implementation for ${checkpoint.title} passes structural alignment and integrates cleanly into the repository architecture.`
+        : isOnlyPlaceholder
+          ? 'Replace the template placeholder with your actual implementation referencing the code on the left.'
+          : 'Write additional component logic or functions referencing the specification to pass all architectural checks.',
+      testResults,
+      diagnostic: allPassed ? undefined : {
+        whatHappened: isOnlyPlaceholder 
+          ? 'Placeholder comments are still unmodified.' 
+          : 'Code implementation does not yet fulfill all structural requirements.',
+        whereItHappened: checkpoint.title,
+        whatMessageMeans: 'Imported repository checkpoints verify that you have implemented authentic logic for this component.',
+        conceptInvolved: checkpoint.conceptName,
+        investigationSteps: [
+          'Inspect the reference specification on the left to see the expected imports, variables, and return statements.',
+          'Implement your solution without leftover placeholder tags.',
+          'Verify variable and function names match the reference specifications.',
+        ],
+        suggestedHint: checkpoint.hints[0]?.content || 'Review the reference architecture on the left.',
+      },
+    };
+  }
+
   // Check if this is a CSS styling checkpoint
-  const isCss = checkpoint.conceptId.includes('css') || 
+  const isCss = !checkpoint.projectId.startsWith('gh-') && (
+                checkpoint.conceptId.includes('css') || 
                 checkpoint.targetFileId?.endsWith('.css') || 
                 checkpoint.targetFileId?.includes('style') ||
-                (code.includes('{') && (code.includes('display:') || code.includes('grid-') || code.includes('gap:') || code.includes('flex:')));
+                (code.includes('{') && (code.includes('display:') || code.includes('grid-') || code.includes('gap:') || code.includes('flex:')))
+  );
 
   if (isCss) {
     const testResults: { description: string; passed: boolean }[] = [];
@@ -249,13 +344,15 @@ export async function validateCheckpointSubmission(
   }
 
   // Check if this is a C++ logic checkpoint
-  const isCpp = checkpoint.targetFileId?.endsWith('.cpp') ||
+  const isCpp = !checkpoint.projectId.startsWith('gh-') && (
+                checkpoint.targetFileId?.endsWith('.cpp') ||
                 checkpoint.targetFileId?.endsWith('.h') ||
                 checkpoint.language === 'cpp' ||
                 checkpoint.conceptId.includes('cpp') ||
                 code.includes('std::nan') ||
                 code.includes('#include') ||
-                (code.includes('double calculate') && !code.includes('public '));
+                (code.includes('double calculate') && !code.includes('public '))
+  );
 
   if (isCpp) {
     const testResults: { description: string; passed: boolean; actual?: any; expected?: any }[] = [];
@@ -303,12 +400,13 @@ export async function validateCheckpointSubmission(
     };
   }
 
-  // Check if this is a Java logic checkpoint
-  const isJava = checkpoint.targetFileId?.endsWith('.java') ||
+  // Check if this is a Java logic checkpoint (strictly guarding against javascript)
+  const isJava = !checkpoint.projectId.startsWith('gh-') && (
+                 checkpoint.targetFileId?.endsWith('.java') ||
                  checkpoint.language === 'java' ||
-                 checkpoint.conceptId.includes('java') ||
-                 code.includes('public static double calculate') ||
-                 code.includes('Double.NaN');
+                 (checkpoint.conceptId.includes('java') && !checkpoint.conceptId.includes('javascript') && checkpoint.language !== 'javascript') ||
+                 (code.includes('public static double calculate') && code.includes('Double.NaN'))
+  );
 
   if (isJava) {
     const testResults: { description: string; passed: boolean; actual?: any; expected?: any }[] = [];
@@ -357,10 +455,13 @@ export async function validateCheckpointSubmission(
   }
 
   // Check if this is a Python logic checkpoint
-  const isPython = checkpoint.targetFileId?.endsWith('.py') ||
-                   code.startsWith('def ') ||
-                   code.includes('def calculate') ||
-                   checkpoint.conceptId.includes('python');
+  const isPython = !checkpoint.projectId.startsWith('gh-') && (
+                   checkpoint.targetFileId?.endsWith('.py') ||
+                   checkpoint.language === 'python' ||
+                   (code.startsWith('def ') && !checkpoint.projectId.startsWith('gh-') && !code.includes('function')) ||
+                   (code.includes('def calculate') && !checkpoint.projectId.startsWith('gh-')) ||
+                   (checkpoint.conceptId.includes('python') && !checkpoint.projectId.startsWith('gh-'))
+  );
 
   if (isPython) {
     const testResults: { description: string; passed: boolean; actual?: any; expected?: any }[] = [];

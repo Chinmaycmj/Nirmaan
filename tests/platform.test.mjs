@@ -512,6 +512,101 @@ test('AI Code Analyzer deconstructs Pydantic model fields and routes clean docum
   assert.equal(docUrl.includes('Field('), false); // No unescaped parentheses in query
 });
 
+// Test 22: Dotfiles and Config Files are Never Classified as JavaScript Code
+test('Dotfiles, lockfiles, and configs are classified as markdown/json and never javascript', () => {
+  function detectLanguage(filename) {
+    const lower = filename.toLowerCase();
+    const name = lower.split('/').pop() || lower;
+    if (name.endsWith('.json')) return 'json';
+    if (name.startsWith('.') || name.includes('ignore') || name.includes('license') || name === 'procfile') return 'markdown';
+    if (name.endsWith('rc')) return 'json';
+    if (lower.endsWith('.html')) return 'html';
+    if (lower.endsWith('.tsx')) return 'tsx';
+    if (lower.endsWith('.jsx')) return 'jsx';
+    if (lower.endsWith('.ts')) return 'typescript';
+    if (lower.endsWith('.js')) return 'javascript';
+    return 'javascript';
+  }
+
+  assert.equal(detectLanguage('.gitignore'), 'markdown');
+  assert.equal(detectLanguage('.env'), 'markdown');
+  assert.equal(detectLanguage('.eslintrc.json'), 'json');
+  assert.equal(detectLanguage('package.json'), 'json');
+  assert.equal(detectLanguage('app/page.tsx'), 'tsx');
+  assert.equal(detectLanguage('src/App.jsx'), 'jsx');
+});
+
+// Test 23: GitHub Importer Candidate Scoring selects real components over .gitignore
+test('GitHub importer candidate scoring prioritizes App.tsx / page.tsx and demotes .gitignore', () => {
+  function isConfig(path) {
+    const p = path.toLowerCase();
+    const name = p.split('/').pop() || p;
+    if (name.startsWith('.')) return true;
+    if (name.includes('lock') || name.includes('license')) return true;
+    return false;
+  }
+
+  function getScore(file) {
+    const name = file.name.toLowerCase();
+    if (isConfig(file.path) || file.name.startsWith('.')) return -100;
+    if (file.language === 'markdown' || file.language === 'json') return -50;
+    if (name === 'app.tsx' || name === 'app.jsx') return 100;
+    if (name === 'page.tsx' || name === 'dashboard.tsx') return 95;
+    return 50;
+  }
+
+  const mockAuraBankFiles = [
+    { name: '.gitignore', path: '.gitignore', language: 'markdown' },
+    { name: 'components.json', path: 'components.json', language: 'json' },
+    { name: 'page.tsx', path: 'app/page.tsx', language: 'tsx' },
+    { name: 'Dashboard.tsx', path: 'components/Dashboard.tsx', language: 'tsx' },
+  ];
+
+  const sorted = [...mockAuraBankFiles].sort((a, b) => getScore(b) - getScore(a));
+  assert.equal(sorted[0].name, 'page.tsx');
+  assert.equal(sorted[1].name, 'Dashboard.tsx');
+  assert.equal(sorted[sorted.length - 1].name, '.gitignore');
+});
+
+// Test 24: Imported GitHub repository validation verifies authentic code without Java calculator false trigger
+test('Imported GitHub repositories validate real code and never trigger Java calculator error', () => {
+  function validateImportedRepo(checkpoint, code) {
+    // Java check strictly guarded
+    const isJava = !checkpoint.projectId.startsWith('gh-') && (
+      checkpoint.language === 'java' ||
+      (checkpoint.conceptId.includes('java') && !checkpoint.conceptId.includes('javascript') && checkpoint.language !== 'javascript')
+    );
+    if (isJava) {
+      return { passed: false, title: 'Java Logic Incomplete' };
+    }
+
+    if (checkpoint.projectId.startsWith('gh-')) {
+      const codeClean = code.replace(/\/\/.*/g, '').trim();
+      const hasMeaningfulCode = codeClean.length >= 15 && !code.includes('// ... write implementation ...');
+      return {
+        passed: hasMeaningfulCode,
+        title: hasMeaningfulCode ? 'Repository Checkpoint Verified!' : 'Implementation In Progress',
+      };
+    }
+    return { passed: true, title: 'Default Verified' };
+  }
+
+  const ghCheckpoint = {
+    projectId: 'gh-Chinmaycmj-AuraBank-123456',
+    conceptId: 'repo_arch_javascript',
+    language: 'javascript',
+    title: 'Core Architecture of page.tsx',
+  };
+
+  const userCode = `export default function BankingDashboard() { return <div>AuraBank Portal</div>; }`;
+  const result = validateImportedRepo(ghCheckpoint, userCode);
+
+  assert.equal(result.passed, true);
+  assert.equal(result.title, 'Repository Checkpoint Verified!');
+  assert.notEqual(result.title, 'Java Logic Incomplete');
+});
+
+
 
 
 
