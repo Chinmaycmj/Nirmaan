@@ -90,7 +90,58 @@ export function detectEnclosingCodeBlock(
     };
   }
 
-  // 2. React Component Scope Detection
+  // 1. Python Indentation Scope Detection
+  const isPython = lang.includes('python') || lang.includes('py');
+  if (isPython) {
+    let pyHeaderLine = -1;
+    let pyHeaderName = '';
+    let baseIndent = 0;
+
+    for (let i = targetLineIndex; i >= 0; i--) {
+      const cur = lines[i];
+      const trimmed = cur.trim();
+      const fnMatch = trimmed.match(/^(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(/);
+      const classMatch = trimmed.match(/^class\s+([a-zA-Z0-9_]+)/);
+      if (fnMatch) {
+        pyHeaderLine = i;
+        pyHeaderName = `Python Function: def ${fnMatch[1]}()`;
+        baseIndent = cur.search(/\S/);
+        break;
+      }
+      if (classMatch) {
+        pyHeaderLine = i;
+        pyHeaderName = `Python Class: ${classMatch[1]}`;
+        baseIndent = cur.search(/\S/);
+        break;
+      }
+    }
+
+    if (pyHeaderLine !== -1) {
+      let pyEndLine = pyHeaderLine;
+      for (let i = pyHeaderLine + 1; i < total; i++) {
+        const cur = lines[i];
+        if (!cur.trim() || cur.trim().startsWith('#')) continue;
+        const indent = cur.search(/\S/);
+        if (indent <= baseIndent) {
+          break;
+        }
+        pyEndLine = i;
+      }
+
+      const blockLines = lines.slice(pyHeaderLine, pyEndLine + 1);
+      return {
+        blockType: 'function',
+        blockName: pyHeaderName,
+        startLine: pyHeaderLine + 1,
+        endLine: pyEndLine + 1,
+        codeSnippet: blockLines.join('\n'),
+        siblingTokensOrProperties: blockLines.slice(1).map(l => l.trim()).filter(Boolean).slice(0, 5),
+        surroundingSummary: `Python execution block: ${pyHeaderName} coordinates routine logic and indentation scope.`,
+      };
+    }
+  }
+
+  // 2. React / Vue / Svelte Component Scope Detection
   let compStart = -1;
   let compName = '';
   for (let i = targetLineIndex; i >= 0; i--) {
@@ -109,18 +160,36 @@ export function detectEnclosingCodeBlock(
     }
   }
 
-  // 3. Local Function or Method Detection
+  // 3. Multi-Language Functions, Methods & Classes (Rust, Go, C++, Java, C#, JS, TS, PHP, Swift, Kotlin)
   let funcStart = -1;
   let funcName = '';
   for (let i = targetLineIndex; i >= 0; i--) {
     const cur = lines[i].trim();
+    const rustMatch = cur.match(/(?:pub\s+)?(?:async\s+)?fn\s+([a-zA-Z0-9_]+)/);
+    const goMatch = cur.match(/func\s+(?:\([^)]+\)\s+)?([a-zA-Z0-9_]+)/);
+    const typeMatch = cur.match(/(?:class|struct|interface|trait|enum)\s+([a-zA-Z0-9_]+)/);
     const fnMatch = cur.match(/(?:async\s+)?function\s+([a-zA-Z0-9_]+)\s*\(/) ||
                     cur.match(/(?:const|let)\s+([a-zA-Z0-9_]+)\s*=\s*(?:async\s*)?\(/) ||
-                    cur.match(/def\s+([a-zA-Z0-9_]+)\s*\(/) ||
-                    cur.match(/(?:public|private|static|\w+)\s+(?:void|\w+)\s+([a-zA-Z0-9_]+)\s*\(/);
+                    cur.match(/(?:public|private|protected|static|virtual|\w+)\s+(?:[\w<>\[\]]+)\s+([a-zA-Z0-9_]+)\s*\(/);
+    
+    if (rustMatch) {
+      funcStart = i;
+      funcName = `Rust fn: ${rustMatch[1]}()`;
+      break;
+    }
+    if (goMatch) {
+      funcStart = i;
+      funcName = `Go func: ${goMatch[1]}()`;
+      break;
+    }
+    if (typeMatch) {
+      funcStart = i;
+      funcName = `Type: ${typeMatch[0]}`;
+      break;
+    }
     if (fnMatch) {
       funcStart = i;
-      funcName = fnMatch[1];
+      funcName = `${fnMatch[1]}()`;
       break;
     }
   }

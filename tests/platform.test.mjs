@@ -834,6 +834,45 @@ test('Surrounding Block Detection accurately identifies enclosing scopes, collab
   assert.ok(segments.some(s => s.text === '22px' && s.isToken === true));
   assert.ok(segments.some(s => s.text === ':' && s.isToken === true));
   assert.ok(segments.some(s => s.text === ';' && s.isToken === true));
+
+  // 4. Verify Universal Language Scope (Python Indentation)
+  function detectPythonScope(lines, targetLineIndex) {
+    let pyHeaderLine = -1;
+    let pyHeaderName = '';
+    let baseIndent = 0;
+    for (let i = targetLineIndex; i >= 0; i--) {
+      const cur = lines[i];
+      const fnMatch = cur.trim().match(/^(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(/);
+      if (fnMatch) {
+        pyHeaderLine = i;
+        pyHeaderName = `Python Function: def ${fnMatch[1]}()`;
+        baseIndent = cur.search(/\S/);
+        break;
+      }
+    }
+    let pyEndLine = pyHeaderLine;
+    for (let i = pyHeaderLine + 1; i < lines.length; i++) {
+      const cur = lines[i];
+      if (!cur.trim() || cur.trim().startsWith('#')) continue;
+      const indent = cur.search(/\S/);
+      if (indent <= baseIndent) break;
+      pyEndLine = i;
+    }
+    return { startLine: pyHeaderLine + 1, endLine: pyEndLine + 1, name: pyHeaderName };
+  }
+
+  const pyLines = [
+    'import math',
+    'def calculate_tax(income):',
+    '    if income > 50000:',
+    '        return income * 0.2',
+    '    return income * 0.1',
+    'def other(): pass'
+  ];
+  const pyScope = detectPythonScope(pyLines, 3);
+  assert.equal(pyScope.startLine, 2);
+  assert.equal(pyScope.endLine, 5);
+  assert.equal(pyScope.name, 'Python Function: def calculate_tax()');
 });
 
 
