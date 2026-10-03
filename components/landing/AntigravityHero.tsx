@@ -57,60 +57,10 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
   return (
     <div className="min-h-screen w-screen bg-[#FFF1E7] text-[#1c1917] flex flex-col justify-between selection:bg-[#326080] selection:text-white relative overflow-hidden font-sans">
       
-      {/* Background: Geometric Deep Marina & Coastal Blue Ribbon Angles (Marina Luxury Palette) */}
-      <div className="absolute top-0 right-0 w-[55vw] h-[100vh] pointer-events-none overflow-hidden z-0 hidden lg:block">
-        {/* Layer 1: Coastal sky blue ribbon (#B5D2E6) */}
-        <div 
-          className="absolute -top-32 -right-20 w-[600px] h-[1100px] bg-[#B5D2E6] rounded-[60px] shadow-2xl opacity-75 transform rotate-[-35deg]"
-        />
-        {/* Layer 2: Medium ocean slate ribbon */}
-        <div 
-          className="absolute -top-24 -right-10 w-[520px] h-[1100px] bg-[#487a9e] rounded-[60px] shadow-2xl opacity-85 transform rotate-[-35deg]"
-        />
-        {/* Layer 3: Deep Marina navy ribbon (#326080) */}
-        <div 
-          className="absolute -top-16 right-0 w-[450px] h-[1100px] bg-[#326080] rounded-[60px] shadow-2xl transform rotate-[-35deg]"
-        />
-        
-        {/* Layer 4: Floating clean warm card nestled inside diagonal angle */}
-        <div 
-          className="absolute top-28 right-16 w-[360px] bg-white/95 rounded-3xl p-5 shadow-2xl border border-[#ebdcd0] transform rotate-[-12deg] hover:rotate-0 transition-transform duration-500 ease-out pointer-events-auto"
-        >
-          <div className="flex items-center justify-between pb-3 border-b border-[#f0e3d7] mb-3">
-            <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-            </div>
-            <span className="text-[10px] font-mono font-semibold text-[#326080] bg-[#B5D2E6]/30 px-2 py-0.5 rounded-full border border-[#B5D2E6]/60">
-              LIVE PREVIEW &amp; TUTOR
-            </span>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div className="p-2.5 rounded-xl bg-[#FFF1E7]/70 border border-[#ebdcd0]">
-              <div className="text-[11px] font-bold text-[#1c1917]">Learn By Building</div>
-              <p className="text-[11px] text-[#6b625b] mt-0.5">Real code, live preview, progressive hints, token inspector.</p>
-            </div>
-
-            <div className="flex items-center justify-between p-2 rounded-lg bg-[#B5D2E6]/25 border border-[#B5D2E6]/60 text-[#326080] text-[11px] font-medium">
-              <span>Human Ownership</span>
-              <span className="font-bold">60% - 100%</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-[10px] font-medium text-[#57534e]">
-              <div className="p-2 rounded bg-[#FFF1E7]/70 border border-[#ebdcd0] flex items-center gap-1.5">
-                <Check className="w-3 h-3 text-emerald-600" />
-                <span>Zero TS Leakage</span>
-              </div>
-              <div className="p-2 rounded bg-[#FFF1E7]/70 border border-[#ebdcd0] flex items-center gap-1.5">
-                <Check className="w-3 h-3 text-emerald-600" />
-                <span>Official Docs Links</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Ambient Marina Palette Lighting (Zero text obstruction, 100% clear readability) */}
+      <div className="absolute -top-32 -right-32 w-[420px] h-[420px] bg-[#B5D2E6]/35 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute top-1/3 -left-32 w-80 h-80 bg-[#805232]/10 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute -bottom-32 right-1/4 w-96 h-96 bg-[#B5D2E6]/25 rounded-full blur-3xl pointer-events-none z-0" />
 
       {/* Subtle micro-dot pattern for modern high-end feel */}
       <div 
@@ -178,7 +128,7 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
             <div className="w-2.5 h-1.5 bg-[#805232] rounded-full" />
           </div>
 
-          <p className="text-sm md:text-base text-[#6b625b] max-w-xl mx-auto leading-relaxed pt-1">
+          <p className="text-sm md:text-base text-[#3d3834] font-medium max-w-xl mx-auto leading-relaxed pt-1">
             AI builds with you, but not everything for you. Describe your project in plain English, and our co-developer will guide you step by step.
           </p>
         </div>
@@ -292,6 +242,26 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
           >
             Import Repository →
           </button>
+        </div>
+
+        {/* Feature Highlights Row */}
+        <div className="flex flex-wrap items-center justify-center gap-2.5 pt-4 text-xs text-[#57534e]">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#ebdcd0] shadow-sm">
+            <Check className="w-3.5 h-3.5 text-emerald-600" />
+            <span>100% Real Code &amp; Sandbox</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#ebdcd0] shadow-sm">
+            <Check className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Human Ownership (60%–100%)</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#ebdcd0] shadow-sm">
+            <Check className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Zero TypeScript Leakage</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#ebdcd0] shadow-sm">
+            <Check className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Dual AI &amp; Official Specs</span>
+          </div>
         </div>
       </main>
 
