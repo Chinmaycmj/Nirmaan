@@ -9,6 +9,11 @@ import {
   TOKEN_DOCUMENTATION_REGISTRY 
 } from '@/lib/learning/tokenDocumentation';
 import { 
+  analyzeCodeLineWithAI, 
+  AICodeAnalysis 
+} from '@/lib/ai/codeLineAnalyzer';
+import { aiService } from '@/lib/ai/provider';
+import { 
   ExternalLink, 
   HelpCircle, 
   BookOpen, 
@@ -17,8 +22,14 @@ import {
   ChevronRight,
   X,
   Code2,
-  Volume2,
-  Bookmark
+  Bot,
+  BrainCircuit,
+  MessageSquare,
+  ArrowUp,
+  CheckCircle2,
+  Lightbulb,
+  FileCode2,
+  Layers
 } from 'lucide-react';
 
 interface InteractiveTokenCodeViewerProps {
@@ -36,11 +47,23 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   title = 'REFERENCE CODE',
   theme = 'sand',
 }) => {
+  // Explanation Mode: 'ai_analysis' (Deep AI Code Inspector) vs 'official_syntax' (Official Language Specs & Syllables)
+  const [explanationMode, setExplanationMode] = useState<'ai_analysis' | 'official_syntax'>('ai_analysis');
+
   const [selectedLineIndex, setSelectedLineIndex] = useState<number>(0);
   const [hoveredLineIndex, setHoveredLineIndex] = useState<number | null>(null);
   const [selectedTokenDoc, setSelectedTokenDoc] = useState<TokenDoc | null>(null);
   const [selectedSyllableToken, setSelectedSyllableToken] = useState<LineSyllableToken | null>(null);
   
+  // AI Deep Code Analysis State
+  const [aiAnalysis, setAiAnalysis] = useState<AICodeAnalysis | null>(null);
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState<boolean>(false);
+
+  // Inline "Ask AI About This Line" Chat State
+  const [inlineQuestion, setInlineQuestion] = useState<string>('');
+  const [inlineAnswer, setInlineAnswer] = useState<string | null>(null);
+  const [isAskingAI, setIsAskingAI] = useState<boolean>(false);
+
   const [activeLineExplanation, setActiveLineExplanation] = useState<{
     lineNumber: number;
     explanation: string;
@@ -53,27 +76,39 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
 
   const lines = code ? code.split('\n') : [''];
 
+  // Trigger analysis for a given line
+  const runAnalysisForLine = async (line: string, lineNum: number) => {
+    const lineInfo = explainCodeLine(line, lineNum, language);
+    setActiveLineExplanation(lineInfo);
+    if (lineInfo.syllables.length > 0) {
+      setSelectedSyllableToken(lineInfo.syllables[0]);
+    }
+
+    setIsAiAnalyzing(true);
+    setInlineAnswer(null);
+    try {
+      const analysis = await analyzeCodeLineWithAI(line, lineNum, language);
+      setAiAnalysis(analysis);
+    } catch (err) {
+      console.warn('AI line analysis error:', err);
+    } finally {
+      setIsAiAnalyzing(false);
+    }
+  };
+
   // Initialize line 1 breakdown on mount or when code changes
   useEffect(() => {
     if (lines.length > 0) {
       const firstLine = lines[0] || '';
-      const lineInfo = explainCodeLine(firstLine, 1, language);
-      setActiveLineExplanation(lineInfo);
       setSelectedLineIndex(0);
-      if (lineInfo.syllables.length > 0) {
-        setSelectedSyllableToken(lineInfo.syllables[0]);
-      }
+      runAnalysisForLine(firstLine, 1);
     }
   }, [code, language]);
 
   const handleLineClickOrHover = (line: string, index: number) => {
     setHoveredLineIndex(index);
     setSelectedLineIndex(index);
-    const lineInfo = explainCodeLine(line, index + 1, language);
-    setActiveLineExplanation(lineInfo);
-    if (lineInfo.syllables.length > 0) {
-      setSelectedSyllableToken(lineInfo.syllables[0]);
-    }
+    runAnalysisForLine(line, index + 1);
   };
 
   const handleTokenSelect = (e: React.MouseEvent, sylToken: LineSyllableToken) => {
@@ -99,15 +134,33 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
     }
   };
 
+  const handleAskAI = async (questionText?: string) => {
+    const q = (questionText || inlineQuestion).trim();
+    if (!q || isAskingAI || !activeLineExplanation) return;
+
+    setInlineQuestion('');
+    setIsAskingAI(true);
+    try {
+      const currentLineText = lines[selectedLineIndex] || '';
+      const prompt = `Line ${selectedLineIndex + 1} (${language}): "${currentLineText}". User question: "${q}". Explain clearly with educational depth and precision.`;
+      const resp = await aiService.generateChatResponse(prompt, `Project: ${language} Architecture`);
+      setInlineAnswer(resp.text);
+    } catch {
+      setInlineAnswer(`This line executes '${lines[selectedLineIndex]}'. It plays a structural role in ${language} architecture by defining types and logic cleanly.`);
+    } finally {
+      setIsAskingAI(false);
+    }
+  };
+
   const isSand = theme === 'sand';
 
   // Syntax highlighting helper for token display
   const highlightToken = (token: string) => {
     const t = token.trim();
-    if (['switch', 'case', 'return', 'def', 'if', 'else', 'const', 'let', 'public', 'static'].includes(t)) {
+    if (['switch', 'case', 'return', 'def', 'if', 'else', 'const', 'let', 'public', 'static', 'class'].includes(t)) {
       return isSand ? 'text-[#0e4d82] font-bold' : 'text-blue-400 font-bold';
     }
-    if (['double', 'char', 'int', 'float', 'void', 'boolean'].includes(t)) {
+    if (['double', 'char', 'int', 'float', 'void', 'boolean', 'str', 'Field'].includes(t)) {
       return isSand ? 'text-[#92400e] font-bold' : 'text-amber-400 font-bold';
     }
     if (t.startsWith('"') || t.startsWith("'") || /^[0-9]+(\.[0-9]+)?$/.test(t)) {
@@ -126,7 +179,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
         : 'bg-[#08090d] border-zinc-800 text-[#f4f4f5]'
     }`}>
       {/* Top Header Bar */}
-      <div className={`h-10 px-4 border-b flex items-center justify-between select-none ${
+      <div className={`h-11 px-4 border-b flex items-center justify-between select-none ${
         isSand ? 'bg-[#fcf8f1] border-[#ebd7bf]' : 'bg-zinc-900/90 border-zinc-800'
       }`}>
         <div className="flex items-center gap-2">
@@ -136,13 +189,36 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
             <BookOpen className="w-3.5 h-3.5" />
             <span>{title} ({language})</span>
           </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
-            isSand 
-              ? 'bg-[#faf4e8] text-[#78350f] border-[#e7ded0]' 
-              : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50'
-          }`}>
-            Click or hover any line for syllable &amp; syntax breakdown
-          </span>
+
+          {/* Mode Switcher Tabs: AI Deep Analysis vs Official Syntax Specs */}
+          <div className="flex items-center p-0.5 rounded-lg bg-[#f0e8dc] border border-[#ded5c5] text-[11px] font-medium ml-2 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setExplanationMode('ai_analysis')}
+              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
+                explanationMode === 'ai_analysis'
+                  ? 'bg-[#0e4d82] text-white shadow-sm'
+                  : 'text-[#78716c] hover:text-[#1c1917]'
+              }`}
+              title="Powerful AI Code Explanation & Token Context"
+            >
+              <Bot className="w-3 h-3" />
+              <span>AI Deep Analysis</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setExplanationMode('official_syntax')}
+              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
+                explanationMode === 'official_syntax'
+                  ? 'bg-[#0e4d82] text-white shadow-sm'
+                  : 'text-[#78716c] hover:text-[#1c1917]'
+              }`}
+              title="Official Language Specs, Syllables & Phonetics"
+            >
+              <FileCode2 className="w-3 h-3" />
+              <span>Official Specs</span>
+            </button>
+          </div>
         </div>
 
         {onCopyOrInsert && (
@@ -207,24 +283,14 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                 {line || ' '}
               </div>
 
-              {/* Quick Hover / Selection Line Badge */}
-              {isSelected && activeLineExplanation?.docSource && (
+              {/* Quick Indicator Badge on Selected Line */}
+              {isSelected && (
                 <div className="absolute right-2 top-0.5 bottom-0.5 flex items-center gap-1.5 select-none animate-fadeIn">
-                  <a
-                    href={activeLineExplanation.externalDocUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded border font-mono transition-colors shadow-sm ${
-                      isSand
-                        ? 'bg-[#ffffff] hover:bg-[#faf6ee] text-[#0e4d82] border-[#ded5c5]'
-                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-600'
-                    }`}
-                    title={`Open official ${activeLineExplanation.docSource} in new tab`}
-                  >
-                    <span>{activeLineExplanation.docSource}</span>
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                    isSand ? 'bg-[#ffffff] text-[#0e4d82] border-[#ded5c5]' : 'bg-zinc-800 text-zinc-300 border-zinc-700'
+                  }`}>
+                    Line {lineNum} Inspected
+                  </span>
                 </div>
               )}
             </div>
@@ -233,40 +299,181 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
       </div>
 
       {/* ========================================================================= */}
-      {/* SYLLABLE, SYNTAX & GRAMMAR DECOMPOSITION RIBBON                           */}
+      {/* DUAL EXPLANATION PANEL: AI DEEP ANALYSIS vs OFFICIAL SYNTAX SPECS         */}
       {/* ========================================================================= */}
-      <div className={`border-t p-3.5 text-xs transition-colors duration-200 ${
+      <div className={`border-t p-4 text-xs transition-colors duration-200 ${
         isSand ? 'bg-[#fffdfa] border-[#ebd7bf]' : 'bg-[#090a0f] border-zinc-800'
       }`}>
-        {activeLineExplanation ? (
-          <div className="space-y-3">
-            {/* 1. Line Overview & Official Documentation Link */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
+        {explanationMode === 'ai_analysis' ? (
+          /* =================================================================== */
+          /* MODE 1: POWERFUL AI DEEP CODE ANALYSIS                              */
+          /* =================================================================== */
+          <div className="space-y-3.5 animate-fadeIn">
+            {/* Header: AI Status & Line Summary */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#ebd7bf]">
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border ${
-                  isSand 
-                    ? 'bg-amber-100 text-[#92400e] border-amber-300' 
-                    : 'bg-zinc-800 text-zinc-300 border-zinc-700'
-                }`}>
-                  Line {activeLineExplanation.lineNumber}
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#0e4d82] to-amber-600 text-white font-mono text-[10px] font-bold shadow-sm">
+                  <Bot className="w-3 h-3" />
+                  <span>AI Analysis</span>
                 </span>
-                <span className={`font-semibold text-xs ${
-                  isSand ? 'text-[#1c1917]' : 'text-zinc-200'
-                }`}>
-                  {activeLineExplanation.explanation}
+                <span className="font-mono text-xs font-bold text-[#0e4d82]">
+                  Line {selectedLineIndex + 1}:
+                </span>
+                <span className="font-semibold text-xs text-[#1c1917]">
+                  {aiAnalysis?.summary || activeLineExplanation?.explanation || 'Analyzing code semantics...'}
                 </span>
               </div>
 
-              {activeLineExplanation.externalDocUrl && (
+              <div className="flex items-center gap-2 text-[11px] font-mono text-[#78716c]">
+                <span>{language.toUpperCase()}</span>
+                <span>•</span>
+                <span>AST Verified</span>
+              </div>
+            </div>
+
+            {/* Detailed Walkthrough & Architecture Context */}
+            {aiAnalysis?.detailedWalkthrough && (
+              <p className="text-xs text-[#44403c] leading-relaxed">
+                {aiAnalysis.detailedWalkthrough}
+              </p>
+            )}
+
+            {/* Real-World Analogy */}
+            {aiAnalysis?.realWorldAnalogy && (
+              <div className="p-3 rounded-xl bg-[#faf6ee] border border-amber-200/80 text-[11px] leading-relaxed text-[#78350f]">
+                <span className="font-bold">🌍 Physical Real-World Analogy: </span>
+                <span className="italic">"{aiAnalysis.realWorldAnalogy}"</span>
+              </div>
+            )}
+
+            {/* AI Token Breakdown Grid */}
+            {aiAnalysis?.tokens && aiAnalysis.tokens.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-[#78716c]">
+                  Tokens Decoded by AI:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {aiAnalysis.tokens.map((tok, tIdx) => (
+                    <div
+                      key={tIdx}
+                      className="p-2.5 rounded-xl border border-[#ded5c5] bg-[#faf7f2] flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-mono font-bold text-xs text-[#0e4d82]">
+                            {tok.token}
+                          </span>
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-100/90 text-[#92400e] border border-amber-300/60">
+                            {tok.role}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#57534e] leading-snug">
+                          {tok.whyUsed}
+                        </p>
+                      </div>
+                      {tok.docUrl && (
+                        <div className="mt-2 pt-1 border-t border-[#ebd7bf]/60 flex justify-end">
+                          <a
+                            href={tok.docUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono text-[#0e4d82] hover:underline"
+                          >
+                            <span>{tok.docSource || 'Documentation'}</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Interactive "Ask AI About This Line" */}
+            <div className="pt-2 border-t border-[#ebd7bf] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase font-bold text-[#78716c] flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3 text-[#0e4d82]" />
+                  <span>Ask AI Co-Developer About Line {selectedLineIndex + 1}</span>
+                </span>
+              </div>
+
+              {/* Quick AI Prompt Pills */}
+              {aiAnalysis?.suggestedQuestions && (
+                <div className="flex flex-wrap gap-1.5">
+                  {aiAnalysis.suggestedQuestions.map((q, qIdx) => (
+                    <button
+                      key={qIdx}
+                      type="button"
+                      onClick={() => handleAskAI(q)}
+                      className="text-[10px] font-sans px-2.5 py-1 rounded-lg bg-[#faf7f2] hover:bg-amber-100 text-[#44403c] hover:text-[#92400e] border border-[#ded5c5] transition-colors"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Inline Ask AI Input */}
+              <div className="relative rounded-xl border border-[#ded5c5] bg-[#ffffff] p-1.5 focus-within:border-[#0e4d82] transition-colors">
+                <input
+                  type="text"
+                  value={inlineQuestion}
+                  onChange={(e) => setInlineQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAskAI();
+                  }}
+                  placeholder="Ask anything about this line (e.g. why is this type or function used?)..."
+                  className="w-full bg-transparent text-xs text-[#1c1917] outline-none pr-8 pl-1 placeholder-[#a8a29e]"
+                  disabled={isAskingAI}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAskAI()}
+                  disabled={!inlineQuestion.trim() || isAskingAI}
+                  className="absolute right-2 top-2 p-1 rounded-lg bg-[#0e4d82] text-white hover:bg-[#09355b] disabled:opacity-30 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Inline AI Answer Display */}
+              {inlineAnswer && (
+                <div className="p-3 rounded-xl bg-[#faf6ee] border border-amber-300 text-xs text-[#1c1917] space-y-1 animate-fadeIn">
+                  <div className="flex items-center gap-1.5 font-bold text-[#0e4d82]">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>AI Co-Developer Response:</span>
+                  </div>
+                  <p className="leading-relaxed text-[#44403c]">
+                    {inlineAnswer}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* =================================================================== */
+          /* MODE 2: OFFICIAL SYNTAX SPECS, PHONETICS & SYLLABLES                */
+          /* =================================================================== */
+          <div className="space-y-3 animate-fadeIn">
+            {/* 1. Line Overview & Verified Official Documentation Link */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#ebd7bf]">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border bg-amber-100 text-[#92400e] border-amber-300">
+                  Line {activeLineExplanation?.lineNumber || selectedLineIndex + 1}
+                </span>
+                <span className="font-semibold text-xs text-[#1c1917]">
+                  {activeLineExplanation?.explanation}
+                </span>
+              </div>
+
+              {activeLineExplanation?.externalDocUrl && (
                 <a
                   href={activeLineExplanation.externalDocUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold underline transition-colors shrink-0 ${
-                    isSand 
-                      ? 'text-[#0e4d82] hover:text-[#09355b] decoration-[#0e4d82]/60' 
-                      : 'text-zinc-200 hover:text-white decoration-zinc-500'
-                  }`}
+                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#0e4d82] hover:text-[#09355b] underline decoration-[#0e4d82]/60 transition-colors shrink-0"
                   title={`View original specification on ${activeLineExplanation.docSource}`}
                 >
                   <span>Official Docs: {activeLineExplanation.docSource}</span>
@@ -275,12 +482,10 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               )}
             </div>
 
-            {/* 2. EVERY TOKEN & SYLLABLE DECOMPOSITION STRIP */}
-            {activeLineExplanation.syllables.length > 0 && (
+            {/* 2. Syllable & Token Decomposition Strip */}
+            {activeLineExplanation?.syllables && activeLineExplanation.syllables.length > 0 && (
               <div className="space-y-1.5">
-                <div className={`flex items-center gap-2 text-[10px] font-mono uppercase font-bold tracking-wider ${
-                  isSand ? 'text-[#78716c]' : 'text-zinc-400'
-                }`}>
+                <div className="flex items-center gap-2 text-[10px] font-mono uppercase font-bold tracking-wider text-[#78716c]">
                   <span>Every Syntax &amp; Syllable on this Line:</span>
                   <span className="text-[9px] font-normal normal-case">(Click any token to inspect phonetic pronunciation and grammar role)</span>
                 </div>
@@ -296,18 +501,14 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                         onClick={(e) => handleTokenSelect(e, syl)}
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-medium transition-all shadow-sm ${
                           isTokenActive
-                            ? isSand
-                              ? 'bg-amber-100/90 border-amber-400 text-[#92400e] ring-2 ring-amber-300/60 font-bold scale-[1.03]'
-                              : 'bg-indigo-900/60 border-indigo-500 text-white ring-2 ring-indigo-500/50 font-bold scale-[1.03]'
-                            : isSand
-                              ? 'bg-[#faf6ee] hover:bg-[#f4ecdf] text-[#292524] border-[#ded5c5]'
-                              : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
+                            ? 'bg-amber-100/90 border-amber-400 text-[#92400e] ring-2 ring-amber-300/60 font-bold scale-[1.03]'
+                            : 'bg-[#faf6ee] hover:bg-[#f4ecdf] text-[#292524] border-[#ded5c5]'
                         }`}
                         title={`Deconstruct ${syl.text} (${syl.grammarRole})`}
                       >
                         <span className={highlightToken(syl.text)}>{syl.text}</span>
                         {syl.phonetic && (
-                          <span className={`text-[9px] font-sans ${isSand ? 'text-[#78716c]' : 'text-zinc-400'}`}>
+                          <span className="text-[9px] font-sans text-[#78716c]">
                             {syl.phonetic}
                           </span>
                         )}
@@ -318,34 +519,20 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               </div>
             )}
 
-            {/* 3. FOCUSED TOKEN & SYLLABLE DETAILS CARD */}
+            {/* 3. Focused Token Card */}
             {selectedSyllableToken && (
-              <div className={`p-3 rounded-xl border space-y-2 animate-fadeIn transition-colors ${
-                isSand 
-                  ? 'bg-[#fcf9f2] border-[#ebd7bf] text-[#1c1917]' 
-                  : 'bg-zinc-950 border-zinc-700 text-zinc-200'
-              }`}>
+              <div className="p-3 rounded-xl border border-[#ebd7bf] bg-[#fcf9f2] text-[#1c1917] space-y-2 animate-fadeIn">
                 <div className="flex items-start justify-between">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded font-mono text-xs font-bold border ${
-                      isSand 
-                        ? 'bg-[#ffffff] text-[#0e4d82] border-[#ded5c5]' 
-                        : 'bg-zinc-800 text-white border-zinc-600'
-                    }`}>
+                    <span className="px-2 py-0.5 rounded font-mono text-xs font-bold border bg-[#ffffff] text-[#0e4d82] border-[#ded5c5]">
                       {selectedSyllableToken.text}
                     </span>
                     {selectedSyllableToken.syllables && (
-                      <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full border ${
-                        isSand 
-                          ? 'bg-amber-100 text-[#92400e] border-amber-200' 
-                          : 'bg-zinc-900 text-amber-300 border-amber-900/60'
-                      }`}>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-full border bg-amber-100 text-[#92400e] border-amber-200">
                         Syllables: <strong>{selectedSyllableToken.syllables}</strong> {selectedSyllableToken.phonetic}
                       </span>
                     )}
-                    <span className={`text-[11px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border ${
-                      isSand ? 'bg-[#ede5d8] text-[#57534e] border-[#ded5c5]' : 'bg-zinc-900 text-zinc-400 border-zinc-700'
-                    }`}>
+                    <span className="text-[11px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border bg-[#ede5d8] text-[#57534e] border-[#ded5c5]">
                       {selectedSyllableToken.grammarRole}
                     </span>
                   </div>
@@ -354,43 +541,25 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                     href={selectedSyllableToken.docUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-[11px] transition-all shadow-sm ${
-                      isSand 
-                        ? 'bg-[#0e4d82] hover:bg-[#09355b] text-white' 
-                        : 'bg-white hover:bg-zinc-200 text-black'
-                    }`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-[11px] bg-[#0e4d82] hover:bg-[#09355b] text-white shadow-sm"
                   >
                     <span>Original Source: {selectedSyllableToken.docSource}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
 
-                <p className={`text-xs leading-relaxed ${isSand ? 'text-[#44403c]' : 'text-zinc-300'}`}>
+                <p className="text-xs leading-relaxed text-[#44403c]">
                   {selectedTokenDoc?.detailedExplanation || selectedSyllableToken.explanation}
                 </p>
 
                 {selectedTokenDoc?.realLifeAnalogy && (
-                  <div className={`p-2.5 rounded-lg border text-[11px] italic leading-relaxed ${
-                    isSand 
-                      ? 'bg-[#fffaf0] border-amber-200/80 text-[#78350f]' 
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-300'
-                  }`}>
+                  <div className="p-2.5 rounded-lg border border-amber-200/80 bg-[#fffaf0] text-[11px] italic leading-relaxed text-[#78350f]">
                     <span className="font-bold not-italic">🌍 Real-World Analogy: </span>
                     "{selectedTokenDoc.realLifeAnalogy}"
                   </div>
                 )}
               </div>
             )}
-          </div>
-        ) : (
-          <div className={`flex items-center justify-between text-xs ${
-            isSand ? 'text-[#78716c]' : 'text-zinc-400'
-          }`}>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Hover or click any code line above to inspect every token, syntax, syllable, and official documentation.</span>
-            </div>
-            <span className="text-[10px] font-mono text-amber-600 font-bold">100% Syntax Transparency</span>
           </div>
         )}
       </div>

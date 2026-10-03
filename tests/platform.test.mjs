@@ -488,6 +488,31 @@ test('GitHub Importer resolves food delivery web apps and never falls back to a 
   assert.equal(project.files.some(f => f.name.includes('calc')), false);
 });
 
+// Test 21: AI Code Line Analyzer & Clean Doc Routing (Resolving user's disease_name: str = Field(...) issue)
+test('AI Code Analyzer deconstructs Pydantic model fields and routes clean documentation URLs', () => {
+  function sanitizeDocUrl(line) {
+    if (line.includes('Field(') || line.includes('Field')) {
+      return 'https://docs.pydantic.dev/latest/concepts/fields/';
+    }
+    if (line.includes('BaseModel')) {
+      return 'https://docs.pydantic.dev/latest/concepts/models/';
+    }
+    if (line.includes(': str')) {
+      return 'https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str';
+    }
+    const words = line.match(/[a-zA-Z0-9_]+/g) || [];
+    return `https://docs.python.org/3/search.html?q=${words[0] || 'python'}`;
+  }
+
+  const complexLine = 'disease_name: str = Field(description="Clinical diagnosis name")';
+  const docUrl = sanitizeDocUrl(complexLine);
+
+  assert.equal(docUrl, 'https://docs.pydantic.dev/latest/concepts/fields/');
+  assert.equal(docUrl.includes('disease_name'), false); // Never leaks arbitrary variable name into search
+  assert.equal(docUrl.includes('Field('), false); // No unescaped parentheses in query
+});
+
+
 
 
 

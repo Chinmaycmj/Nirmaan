@@ -598,7 +598,33 @@ function getOfficialDocSourceForLanguage(lang?: string): 'MDN Web Docs' | 'cppre
 
 function getDocumentationSearchUrl(token: string, lang?: string): string {
   const l = (lang || '').toLowerCase();
-  const q = encodeURIComponent(token.trim());
+  
+  // Extract primary symbol/keyword from complex expressions (e.g. "disease_name: str = Field(c" -> "Field")
+  let cleanSymbol = token.trim();
+  if (cleanSymbol.includes('Field(') || cleanSymbol.includes('Field')) {
+    return 'https://docs.pydantic.dev/latest/concepts/fields/';
+  }
+  if (cleanSymbol.includes('BaseModel')) {
+    return 'https://docs.pydantic.dev/latest/concepts/models/';
+  }
+  if (cleanSymbol.includes(': str') || cleanSymbol === 'str') {
+    return 'https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str';
+  }
+  if (cleanSymbol.includes(': int') || cleanSymbol === 'int') {
+    return 'https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex';
+  }
+  if (cleanSymbol.includes(': float') || cleanSymbol === 'float') {
+    return 'https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex';
+  }
+  if (cleanSymbol.includes('FastAPI') || cleanSymbol.includes('APIRouter')) {
+    return 'https://fastapi.tiangolo.com/';
+  }
+
+  // Extract clean alphanumeric keyword
+  const words = cleanSymbol.match(/[a-zA-Z0-9_]+/g) || [cleanSymbol];
+  // Prefer keywords like Field, def, class, return, switch, calculate
+  const keyword = words.find(w => ['switch', 'case', 'return', 'def', 'class', 'import', 'str', 'Field', 'int', 'float', 'double', 'calculate', 'addEventListener'].includes(w)) || words[words.length - 1] || cleanSymbol;
+  const q = encodeURIComponent(keyword.trim());
 
   if (l.includes('c++') || l.includes('cpp')) {
     return `https://en.cppreference.com/mwiki/index.php?search=${q}`;
