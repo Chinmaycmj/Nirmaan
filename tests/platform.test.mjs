@@ -690,6 +690,153 @@ test('Semantic Tokenizer preserves CSS properties and eliminates vague duplicate
   assert.equal(colorExp.role, 'Hexadecimal Color Literal');
 });
 
+// Test 26: Surrounding Block Detection and Scope Context Analysis
+test('Surrounding Block Detection accurately identifies enclosing scopes, collaborating tokens, and ripple effects', () => {
+  function detectEnclosingCodeBlock(lines, targetLineIndex, language) {
+    const line = lines[targetLineIndex] || '';
+    const lang = (language || '').toLowerCase();
+    const total = lines.length;
+
+    const isCss = lang.includes('css') || 
+      (line.includes(':') && (line.includes('px') || line.includes('rem') || line.includes('#') || line.includes(';'))) ||
+      line.trim().startsWith('.') || line.trim().startsWith('#');
+
+    if (isCss) {
+      let startLine = targetLineIndex;
+      let selector = '';
+      for (let i = targetLineIndex; i >= 0; i--) {
+        const cur = lines[i].trim();
+        if (cur.includes('{') || /^[.#a-zA-Z0-9_:,\s>+~-]+$/.test(cur)) {
+          selector = cur.replace(/\{.*/, '').trim();
+          startLine = i;
+          if (cur.includes('{')) break;
+        }
+        if (cur === '}' && i !== targetLineIndex) break;
+      }
+
+      let endLine = targetLineIndex;
+      for (let i = targetLineIndex; i < total; i++) {
+        const cur = lines[i].trim();
+        if (cur.includes('}')) {
+          endLine = i;
+          break;
+        }
+      }
+
+      const blockLines = lines.slice(startLine, endLine + 1);
+      const siblingDeclarations = blockLines
+        .map(l => l.trim())
+        .filter(l => l.includes(':') && l.includes(';'));
+
+      return {
+        blockType: 'css_rule',
+        blockName: `CSS Rule: ${selector || 'CSS Block'}`,
+        startLine: startLine + 1,
+        endLine: endLine + 1,
+        codeSnippet: blockLines.join('\n'),
+        siblingTokensOrProperties: siblingDeclarations,
+        surroundingSummary: `Presentation group styling '${selector || 'elements'}'.`,
+      };
+    }
+
+    let compStart = -1;
+    let compName = '';
+    for (let i = targetLineIndex; i >= 0; i--) {
+      const cur = lines[i].trim();
+      const compMatch = cur.match(/(?:export\s+default\s+|export\s+)?function\s+([A-Z][a-zA-Z0-9_]*)/);
+      if (compMatch) {
+        compStart = i;
+        compName = compMatch[1];
+        break;
+      }
+    }
+
+    if (compStart !== -1) {
+      return {
+        blockType: 'react_component',
+        blockName: `Component: <${compName} />`,
+        startLine: compStart + 1,
+        endLine: lines.length,
+        codeSnippet: lines.slice(compStart).join('\n'),
+        siblingTokensOrProperties: [],
+        surroundingSummary: `Architectural container: <${compName} />.`,
+      };
+    }
+
+    return {
+      blockType: 'control_flow',
+      blockName: 'Execution Scope',
+      startLine: 1,
+      endLine: total,
+      codeSnippet: lines.join('\n'),
+      siblingTokensOrProperties: [],
+      surroundingSummary: 'Sequential execution scope.',
+    };
+  }
+
+  function tokenizeLineForInteractiveDisplay(line) {
+    const tokenRegex = /<!--[\s\S]*?-->|\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`|<\/?[a-zA-Z0-9_-]+|#[a-fA-F0-9]{3,8}|#[a-zA-Z0-9_-]+|\.[a-zA-Z0-9_-]+|[0-9]+(?:\.[0-9]+)?(?:px|rem|em|%|vh|vw|fr|s|ms|deg)?|===|!==|==|!=|<=|>=|=>|\+\+|--|\+=|-=|\*=|\/=|&&|\|\||::|->|[a-zA-Z_][a-zA-Z0-9_]*-[a-zA-Z0-9_-]+|[a-zA-Z_][a-zA-Z0-9_$]*|[{}();,.:=<>+\-*/\[\]]/g;
+    const tokens = line.match(tokenRegex) || [];
+    const segments = [];
+    let currentIndex = 0;
+
+    for (const token of tokens) {
+      const tokenPos = line.indexOf(token, currentIndex);
+      if (tokenPos === -1) continue;
+      if (tokenPos > currentIndex) {
+        const gap = line.slice(currentIndex, tokenPos);
+        segments.push({ text: gap, isToken: false, isWhitespace: gap.trim().length === 0 });
+      }
+      segments.push({ text: token, isToken: true, isWhitespace: false });
+      currentIndex = tokenPos + token.length;
+    }
+    if (currentIndex < line.length) {
+      const trailing = line.slice(currentIndex);
+      segments.push({ text: trailing, isToken: false, isWhitespace: trailing.trim().length === 0 });
+    }
+    return segments;
+  }
+
+  const cssLines = [
+    '/* Global Navigation Styles */',
+    '.logo {',
+    '  font-size: 22px;',
+    '  font-weight: 800;',
+    '  color: #d97706;',
+    '}',
+    '.nav-links { display: flex; }'
+  ];
+
+  // 1. Verify CSS Rule Block Detection
+  const block = detectEnclosingCodeBlock(cssLines, 2, 'css');
+  assert.equal(block.blockType, 'css_rule');
+  assert.equal(block.blockName, 'CSS Rule: .logo');
+  assert.equal(block.startLine, 2);
+  assert.equal(block.endLine, 6);
+  assert.equal(block.siblingTokensOrProperties.length, 3);
+
+  // 2. Verify React Component Scope Detection
+  const reactLines = [
+    'import React, { useState } from "react";',
+    'export default function BankingDashboard() {',
+    '  const [balance, setBalance] = useState(12450.00);',
+    '  return <div>{balance}</div>;',
+    '}'
+  ];
+  const reactBlock = detectEnclosingCodeBlock(reactLines, 2, 'tsx');
+  assert.equal(reactBlock.blockType, 'react_component');
+  assert.equal(reactBlock.blockName, 'Component: <BankingDashboard />');
+  assert.equal(reactBlock.startLine, 2);
+
+  // 3. Verify Interactive Tokenization for Cursor Hover
+  const segments = tokenizeLineForInteractiveDisplay('  font-size: 22px;');
+  assert.ok(segments.some(s => s.text === 'font-size' && s.isToken === true));
+  assert.ok(segments.some(s => s.text === '22px' && s.isToken === true));
+  assert.ok(segments.some(s => s.text === ':' && s.isToken === true));
+  assert.ok(segments.some(s => s.text === ';' && s.isToken === true));
+});
+
+
 
 
 

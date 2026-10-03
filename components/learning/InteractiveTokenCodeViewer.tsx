@@ -12,24 +12,28 @@ import {
   analyzeCodeLineWithAI, 
   AICodeAnalysis 
 } from '@/lib/ai/codeLineAnalyzer';
+import {
+  detectEnclosingCodeBlock,
+  analyzeTokenInBlockContext,
+  tokenizeLineForInteractiveDisplay,
+  TokenBlockContextAnalysis,
+  EnclosingBlockInfo
+} from '@/lib/ai/blockContextAnalyzer';
 import { aiService } from '@/lib/ai/provider';
 import { 
   ExternalLink, 
-  HelpCircle, 
   BookOpen, 
   Sparkles, 
-  Info, 
-  ChevronRight,
-  X,
-  Code2,
-  Bot,
-  BrainCircuit,
-  MessageSquare,
-  ArrowUp,
-  CheckCircle2,
-  Lightbulb,
-  FileCode2,
-  Layers
+  Code2, 
+  Bot, 
+  MessageSquare, 
+  ArrowUp, 
+  FileCode2, 
+  Layers,
+  Zap,
+  AlertTriangle,
+  Compass,
+  CheckCircle2
 } from 'lucide-react';
 
 interface InteractiveTokenCodeViewerProps {
@@ -38,6 +42,8 @@ interface InteractiveTokenCodeViewerProps {
   onCopyOrInsert?: () => void;
   title?: string;
   theme?: 'sand' | 'dark';
+  projectName?: string;
+  fileName?: string;
 }
 
 export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProps> = ({
@@ -46,20 +52,28 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   onCopyOrInsert,
   title = 'REFERENCE CODE',
   theme = 'sand',
+  projectName = 'Application',
+  fileName,
 }) => {
-  // Explanation Mode: 'ai_analysis' (Deep AI Code Inspector) vs 'official_syntax' (Official Language Specs & Syllables)
-  const [explanationMode, setExplanationMode] = useState<'ai_analysis' | 'official_syntax'>('ai_analysis');
+  // Explanation Mode: 'block_scope' (Surrounding Scope & Block) vs 'ai_analysis' (AI Line Deep Analysis) vs 'official_syntax' (Official Language Specs)
+  const [explanationMode, setExplanationMode] = useState<'block_scope' | 'ai_analysis' | 'official_syntax'>('block_scope');
 
   const [selectedLineIndex, setSelectedLineIndex] = useState<number>(0);
   const [hoveredLineIndex, setHoveredLineIndex] = useState<number | null>(null);
+  const [selectedToken, setSelectedToken] = useState<string | null>(null);
+  const [hoveredToken, setHoveredToken] = useState<string | null>(null);
   const [selectedTokenDoc, setSelectedTokenDoc] = useState<TokenDoc | null>(null);
   const [selectedSyllableToken, setSelectedSyllableToken] = useState<LineSyllableToken | null>(null);
+
+  // Dynamic Surrounding Block & Scope Intelligence State
+  const [blockAnalysis, setBlockAnalysis] = useState<TokenBlockContextAnalysis | null>(null);
+  const [enclosingBlock, setEnclosingBlock] = useState<EnclosingBlockInfo | null>(null);
   
   // AI Deep Code Analysis State
   const [aiAnalysis, setAiAnalysis] = useState<AICodeAnalysis | null>(null);
   const [isAiAnalyzing, setIsAiAnalyzing] = useState<boolean>(false);
 
-  // Inline "Ask AI About This Line" Chat State
+  // Inline "Ask AI About This Block" Chat State
   const [inlineQuestion, setInlineQuestion] = useState<string>('');
   const [inlineAnswer, setInlineAnswer] = useState<string | null>(null);
   const [isAskingAI, setIsAskingAI] = useState<boolean>(false);
@@ -76,13 +90,31 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
 
   const lines = code ? code.split('\n') : [''];
 
-  // Trigger analysis for a given line
-  const runAnalysisForLine = async (line: string, lineNum: number) => {
+  // Trigger analysis for a given line and optionally a target token
+  const runAnalysisForLine = async (line: string, lineNum: number, targetToken?: string) => {
     const lineInfo = explainCodeLine(line, lineNum, language);
     setActiveLineExplanation(lineInfo);
     if (lineInfo.syllables.length > 0) {
       setSelectedSyllableToken(lineInfo.syllables[0]);
     }
+
+    // Detect surrounding enclosing block & scope
+    const blockInfo = detectEnclosingCodeBlock(lines, lineNum - 1, language);
+    setEnclosingBlock(blockInfo);
+
+    // Analyze target token or primary token in surrounding block context
+    const tokenToAnalyze = targetToken || (lineInfo.syllables[0]?.text) || (line.trim().split(/\s+/)[0]) || 'token';
+    setSelectedToken(tokenToAnalyze);
+
+    const tokenBlockContext = analyzeTokenInBlockContext(
+      tokenToAnalyze,
+      line,
+      lineNum - 1,
+      lines,
+      language,
+      projectName
+    );
+    setBlockAnalysis(tokenBlockContext);
 
     setIsAiAnalyzing(true);
     setInlineAnswer(null);
@@ -111,6 +143,44 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
     runAnalysisForLine(line, index + 1);
   };
 
+  // Cursor moves over a specific token in the code
+  const handleTokenHover = (tokenText: string, line: string, lineIdx: number) => {
+    setHoveredToken(tokenText);
+    const context = analyzeTokenInBlockContext(
+      tokenText,
+      line,
+      lineIdx,
+      lines,
+      language,
+      projectName
+    );
+    setBlockAnalysis(context);
+    setEnclosingBlock(context.enclosingBlock);
+  };
+
+  const handleTokenMouseLeave = () => {
+    setHoveredToken(null);
+    // If we have a selected token, keep its block context
+    if (selectedToken && lines[selectedLineIndex]) {
+      const context = analyzeTokenInBlockContext(
+        selectedToken,
+        lines[selectedLineIndex],
+        selectedLineIndex,
+        lines,
+        language,
+        projectName
+      );
+      setBlockAnalysis(context);
+      setEnclosingBlock(context.enclosingBlock);
+    }
+  };
+
+  const handleTokenClick = (tokenText: string, line: string, lineIdx: number) => {
+    setSelectedLineIndex(lineIdx);
+    setSelectedToken(tokenText);
+    runAnalysisForLine(line, lineIdx + 1, tokenText);
+  };
+
   const handleTokenSelect = (e: React.MouseEvent, sylToken: LineSyllableToken) => {
     e.stopPropagation();
     setSelectedSyllableToken(sylToken);
@@ -136,17 +206,18 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
 
   const handleAskAI = async (questionText?: string) => {
     const q = (questionText || inlineQuestion).trim();
-    if (!q || isAskingAI || !activeLineExplanation) return;
+    if (!q || isAskingAI) return;
 
     setInlineQuestion('');
     setIsAskingAI(true);
     try {
-      const currentLineText = lines[selectedLineIndex] || '';
-      const prompt = `Line ${selectedLineIndex + 1} (${language}): "${currentLineText}". User question: "${q}". Explain clearly with educational depth and precision.`;
-      const resp = await aiService.generateChatResponse(prompt, `Project: ${language} Architecture`);
+      const currentToken = blockAnalysis?.token || selectedToken || 'this token';
+      const currentScope = enclosingBlock?.blockName || `Line ${selectedLineIndex + 1}`;
+      const prompt = `Project: ${projectName} (${language}). Scope: ${currentScope}. Target Token: "${currentToken}". Code Block:\n\`\`\`${language}\n${enclosingBlock?.codeSnippet || lines[selectedLineIndex]}\n\`\`\`\nUser question: "${q}". Explain clearly with educational depth, contextual role in surrounding code, and best practices.`;
+      const resp = await aiService.generateChatResponse(prompt, `Project: ${projectName} • Scope: ${currentScope}`);
       setInlineAnswer(resp.text);
     } catch {
-      setInlineAnswer(`This line executes '${lines[selectedLineIndex]}'. It plays a structural role in ${language} architecture by defining types and logic cleanly.`);
+      setInlineAnswer(`In ${blockAnalysis?.enclosingBlock?.blockName || 'this block'}, '${blockAnalysis?.token || 'this token'}' coordinates with adjacent statements to enforce application logic and layout stability.`);
     } finally {
       setIsAskingAI(false);
     }
@@ -188,10 +259,28 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
           }`}>
             <BookOpen className="w-3.5 h-3.5" />
             <span>{title} ({language})</span>
+            {fileName && (
+              <span className="text-[11px] font-normal text-[#78716c] font-sans">
+                • {fileName}
+              </span>
+            )}
           </div>
 
-          {/* Mode Switcher Tabs: AI Deep Analysis vs Official Syntax Specs */}
+          {/* Mode Switcher Tabs: Surrounding Scope & Block vs AI Deep Analysis vs Official Specs */}
           <div className="flex items-center p-0.5 rounded-lg bg-[#f6e7db] border border-[#ebdcd0] text-[11px] font-medium ml-2 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setExplanationMode('block_scope')}
+              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
+                explanationMode === 'block_scope'
+                  ? 'bg-[#326080] text-white shadow-sm'
+                  : 'text-[#78716c] hover:text-[#1c1917]'
+              }`}
+              title="Dynamic Surrounding Scope & Block Inspector"
+            >
+              <Layers className="w-3 h-3" />
+              <span>Surrounding Scope &amp; Block</span>
+            </button>
             <button
               type="button"
               onClick={() => setExplanationMode('ai_analysis')}
@@ -200,7 +289,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                   ? 'bg-[#326080] text-white shadow-sm'
                   : 'text-[#78716c] hover:text-[#1c1917]'
               }`}
-              title="Powerful AI Code Explanation & Token Context"
+              title="Deep AI Line Walkthrough & Pitfalls"
             >
               <Bot className="w-3 h-3" />
               <span>AI Deep Analysis</span>
@@ -237,7 +326,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
         )}
       </div>
 
-      {/* Main Code Lines Container */}
+      {/* Main Code Lines Container with Interactive Token Hover */}
       <div className={`p-2 font-mono text-[13px] md:text-sm overflow-x-auto leading-6 min-h-[220px] max-h-[380px] custom-scrollbar ${
         isSand ? 'bg-[#fbf7ee]' : 'bg-[#050608]'
       }`}>
@@ -246,44 +335,94 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
           const isHovered = hoveredLineIndex === idx;
           const lineNum = idx + 1;
 
+          // Scope Detection: is this line part of the active enclosing block?
+          const isInEnclosingBlock = enclosingBlock && (lineNum >= enclosingBlock.startLine && lineNum <= enclosingBlock.endLine);
+          const isBlockStart = enclosingBlock && lineNum === enclosingBlock.startLine;
+          const isBlockEnd = enclosingBlock && lineNum === enclosingBlock.endLine;
+
+          const segments = tokenizeLineForInteractiveDisplay(line, language);
+
           return (
             <div
               key={idx}
               onMouseEnter={() => handleLineClickOrHover(line, idx)}
               onClick={() => handleLineClickOrHover(line, idx)}
-              className={`group flex items-start py-0.5 px-2.5 rounded-lg transition-all relative cursor-pointer ${
+              className={`group flex items-start py-0.5 px-2.5 rounded-lg transition-all relative ${
                 isSelected
                   ? isSand
                     ? 'bg-[#f6e7db] ring-1 ring-[#326080]/40 shadow-sm'
                     : 'bg-zinc-800/80 ring-1 ring-zinc-700'
-                  : isHovered
+                  : isInEnclosingBlock
                     ? isSand
-                      ? 'bg-[#fcf2ea]'
-                      : 'bg-zinc-800/50'
-                    : isSand
-                      ? 'hover:bg-[#fffbf7]'
-                      : 'hover:bg-zinc-900/40'
+                      ? 'bg-[#f9eee3]/80 border-l-[3px] border-[#326080]'
+                      : 'bg-zinc-900/60 border-l-[3px] border-amber-500'
+                    : isHovered
+                      ? isSand
+                        ? 'bg-[#fcf2ea]'
+                        : 'bg-zinc-800/50'
+                      : isSand
+                        ? 'hover:bg-[#fffbf7]'
+                        : 'hover:bg-zinc-900/40'
               }`}
             >
-              {/* Line Number Gutter */}
-              <span className={`w-9 shrink-0 text-right pr-3 select-none text-[12px] font-mono border-r border-[#ebdcd0]/60 mr-3 ${
+              {/* Line Number Gutter with Scope Rail */}
+              <span className={`w-9 shrink-0 text-right pr-3 select-none text-[12px] font-mono border-r border-[#ebdcd0]/60 mr-3 flex items-center justify-end gap-1 ${
                 isSelected
                   ? isSand
                     ? 'text-[#326080] font-black'
                     : 'text-white font-bold'
-                  : isSand
-                    ? 'text-[#a89f91]'
-                    : 'text-zinc-600'
+                  : isInEnclosingBlock
+                    ? isSand
+                      ? 'text-[#326080] font-semibold'
+                      : 'text-amber-400 font-semibold'
+                    : isSand
+                      ? 'text-[#a89f91]'
+                      : 'text-zinc-600'
               }`}>
                 {lineNum}
               </span>
 
-              {/* Line Content */}
+              {/* Interactive Tokenized Line Content */}
               <div className="flex-1 whitespace-pre pr-28 text-[13px] md:text-sm leading-6">
-                {line || ' '}
+                {segments.map((seg, sIdx) => {
+                  if (!seg.isToken || seg.isWhitespace) {
+                    return <span key={sIdx}>{seg.text}</span>;
+                  }
+
+                  const isTokenHovered = (hoveredToken === seg.text);
+                  const isTokenSelected = (selectedToken === seg.text && isSelected);
+                  const isTokenActive = isTokenHovered || isTokenSelected;
+
+                  return (
+                    <span
+                      key={sIdx}
+                      onMouseEnter={(e) => {
+                        e.stopPropagation();
+                        handleTokenHover(seg.text, line, idx);
+                      }}
+                      onMouseLeave={handleTokenMouseLeave}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTokenClick(seg.text, line, idx);
+                      }}
+                      className={`transition-all duration-150 rounded px-1 py-0.5 cursor-pointer font-mono inline-block ${
+                        isTokenActive
+                          ? isSand
+                            ? 'bg-amber-200 text-[#78350f] font-bold shadow-sm ring-1 ring-amber-400 scale-[1.04]'
+                            : 'bg-amber-500/30 text-amber-200 font-bold shadow-sm ring-1 ring-amber-400 scale-[1.04]'
+                          : isSand
+                            ? 'hover:bg-amber-100 hover:text-[#92400e]'
+                            : 'hover:bg-zinc-800 hover:text-amber-300'
+                      }`}
+                      title={`Inspect token '${seg.text}' and its surrounding code block`}
+                    >
+                      {seg.text}
+                    </span>
+                  );
+                })}
               </div>
 
-              {/* Quick Indicator Badge on Selected Line */}
+              {/* Indicator Badge on Selected or Enclosing Block Boundary */}
               {isSelected && (
                 <div className="absolute right-2 top-0.5 bottom-0.5 flex items-center gap-1.5 select-none animate-fadeIn">
                   <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
@@ -299,14 +438,202 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
       </div>
 
       {/* ========================================================================= */}
-      {/* DUAL EXPLANATION PANEL: AI DEEP ANALYSIS vs OFFICIAL SYNTAX SPECS         */}
+      {/* DYNAMIC SURROUNDING BLOCK & SCOPE INTELLIGENCE PANEL                      */}
       {/* ========================================================================= */}
       <div className={`border-t p-4 text-xs transition-colors duration-200 ${
         isSand ? 'bg-white border-[#ebdcd0]' : 'bg-[#090a0f] border-zinc-800'
       }`}>
-        {explanationMode === 'ai_analysis' ? (
+        {explanationMode === 'block_scope' ? (
           /* =================================================================== */
-          /* MODE 1: POWERFUL AI DEEP CODE ANALYSIS                              */
+          /* MODE 1: DYNAMIC SURROUNDING SCOPE & ENCLOSING BLOCK ANALYSIS        */
+          /* =================================================================== */
+          <div className="space-y-3.5 animate-fadeIn">
+            {/* Header: Enclosing Block Scope & Active Token Pill */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#ebdcd0]">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#326080] to-[#805232] text-white font-mono text-[10px] font-bold shadow-sm">
+                  <Layers className="w-3 h-3" />
+                  <span>Enclosing Scope</span>
+                </span>
+                <span className="font-mono text-xs font-bold text-[#326080] bg-[#f6e7db] px-2 py-0.5 rounded border border-[#ebdcd0]">
+                  {enclosingBlock?.blockName || `Scope (Line ${selectedLineIndex + 1})`}
+                </span>
+                {enclosingBlock && (
+                  <span className="text-[11px] font-mono text-[#78716c]">
+                    (Lines {enclosingBlock.startLine}–{enclosingBlock.endLine})
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-amber-100 text-[#92400e] border border-amber-300 font-bold">
+                  🎯 Token: {blockAnalysis?.token || selectedToken || 'Active Token'}
+                </span>
+                {blockAnalysis?.docUrl && (
+                  <a
+                    href={blockAnalysis.docUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] font-mono text-[#326080] hover:underline"
+                    title={`View official documentation for ${blockAnalysis.token}`}
+                  >
+                    <span>{blockAnalysis.docSource || 'MDN Web Docs'}</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* HERO INSIGHT: How This Token Powers The Enclosing Block */}
+            {blockAnalysis?.howTokenPowersBlock && (
+              <div className="p-3.5 rounded-xl bg-gradient-to-br from-[#faf6ee] to-[#f6ede2] border border-amber-300/80 shadow-sm space-y-1.5">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-[#78350f]">
+                  <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                  <span>How '{blockAnalysis.token}' Powers {enclosingBlock?.blockName || 'This Block'}:</span>
+                </div>
+                <p className="text-xs text-[#44403c] leading-relaxed">
+                  {blockAnalysis.howTokenPowersBlock}
+                </p>
+              </div>
+            )}
+
+            {/* Two-Column Context: Surrounding Group Purpose & Ripple Effect */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Surrounding Group Purpose */}
+              <div className="p-3 rounded-xl bg-white border border-[#ebdcd0] space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-[11px] text-[#326080]">
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Surrounding Group Purpose:</span>
+                </div>
+                <p className="text-[11px] text-[#57534e] leading-relaxed">
+                  {blockAnalysis?.surroundingGroupContext || enclosingBlock?.surroundingSummary || 'Coordinates presentation and component behavior in this section of code.'}
+                </p>
+              </div>
+
+              {/* Ripple Effect / What If Changed? */}
+              <div className="p-3 rounded-xl bg-[#fffbf7] border border-amber-200 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-[11px] text-[#92400e]">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Ripple Effect (If Modified or Removed):</span>
+                </div>
+                <p className="text-[11px] text-[#57534e] leading-relaxed">
+                  {blockAnalysis?.rippleEffect || `Modifying '${blockAnalysis?.token}' directly alters the behavior and output of ${enclosingBlock?.blockName || 'this block'}.`}
+                </p>
+              </div>
+            </div>
+
+            {/* Collaborating Tokens in this Scope (Interactive Sibling Chips) */}
+            {blockAnalysis?.collaboratingTokens && blockAnalysis.collaboratingTokens.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-[#78716c]">
+                  Collaborating Code in This Block:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {blockAnalysis.collaboratingTokens.map((collab, cIdx) => (
+                    <button
+                      key={cIdx}
+                      type="button"
+                      onClick={() => {
+                        const lineIdx = lines.findIndex(l => l.includes(collab.token));
+                        if (lineIdx !== -1) {
+                          handleTokenClick(collab.token, lines[lineIdx], lineIdx);
+                        } else {
+                          handleTokenHover(collab.token, lines[selectedLineIndex] || '', selectedLineIndex);
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg border border-[#ebdcd0] bg-white hover:bg-[#f6e7db] text-[11px] font-mono flex items-center gap-1.5 transition-colors shadow-sm group"
+                      title={collab.relationship}
+                    >
+                      <span className="font-bold text-[#326080] group-hover:text-[#1c1917]">
+                        {collab.token}
+                      </span>
+                      <span className="text-[9px] text-[#78716c] font-sans">
+                        • {collab.role}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Enclosing Block Code Snippet Preview */}
+            {enclosingBlock?.codeSnippet && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-mono text-[#78716c]">
+                  <span>Enclosing Scope Snippet ({enclosingBlock.blockName}):</span>
+                  <span>Lines {enclosingBlock.startLine}–{enclosingBlock.endLine}</span>
+                </div>
+                <pre className="p-2.5 rounded-xl bg-[#fbf7ee] border border-[#ebdcd0] text-[11px] font-mono text-[#44403c] overflow-x-auto leading-relaxed custom-scrollbar">
+                  <code>{enclosingBlock.codeSnippet}</code>
+                </pre>
+              </div>
+            )}
+
+            {/* Interactive "Ask AI About This Block" */}
+            <div className="pt-2 border-t border-[#ebdcd0] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase font-bold text-[#78716c] flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3 text-[#326080]" />
+                  <span>Ask AI Co-Developer About '{blockAnalysis?.token || 'this token'}' in {enclosingBlock?.blockName || 'this block'}</span>
+                </span>
+              </div>
+
+              {/* Quick AI Prompt Pills */}
+              {blockAnalysis?.suggestedQuestions && (
+                <div className="flex flex-wrap gap-1.5">
+                  {blockAnalysis.suggestedQuestions.map((q, qIdx) => (
+                    <button
+                      key={qIdx}
+                      type="button"
+                      onClick={() => handleAskAI(q)}
+                      className="text-[10px] font-sans px-2.5 py-1 rounded-lg bg-white hover:bg-[#f6e7db] text-[#44403c] hover:text-[#1c1917] border border-[#ebdcd0] transition-colors"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Inline Ask AI Input */}
+              <div className="relative rounded-xl border border-[#ebdcd0] bg-white p-1.5 focus-within:border-[#326080] transition-colors">
+                <input
+                  type="text"
+                  value={inlineQuestion}
+                  onChange={(e) => setInlineQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAskAI();
+                  }}
+                  placeholder={`Ask anything about '${blockAnalysis?.token || 'this token'}' in ${enclosingBlock?.blockName || 'this block'}...`}
+                  className="w-full bg-transparent text-xs text-[#1c1917] outline-none pr-8 pl-1 placeholder-[#a8a29e]"
+                  disabled={isAskingAI}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAskAI()}
+                  disabled={!inlineQuestion.trim() || isAskingAI}
+                  className="absolute right-2 top-2 p-1 rounded-lg bg-[#326080] text-white hover:bg-[#254b66] disabled:opacity-30 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Inline AI Answer Display */}
+              {inlineAnswer && (
+                <div className="p-3 rounded-xl bg-[#faf6ee] border border-amber-300 text-xs text-[#1c1917] space-y-1 animate-fadeIn">
+                  <div className="flex items-center gap-1.5 font-bold text-[#326080]">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>AI Co-Developer Response:</span>
+                  </div>
+                  <p className="leading-relaxed text-[#44403c]">
+                    {inlineAnswer}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : explanationMode === 'ai_analysis' ? (
+          /* =================================================================== */
+          /* MODE 2: POWERFUL AI DEEP CODE ANALYSIS                              */
           /* =================================================================== */
           <div className="space-y-3.5 animate-fadeIn">
             {/* Header: AI Status & Line Summary */}
@@ -454,7 +781,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
           </div>
         ) : (
           /* =================================================================== */
-          /* MODE 2: OFFICIAL SYNTAX SPECS, PHONETICS & SYLLABLES                */
+          /* MODE 3: OFFICIAL SYNTAX SPECS, PHONETICS & SYLLABLES                */
           /* =================================================================== */
           <div className="space-y-3 animate-fadeIn">
             {/* 1. Line Overview & Verified Official Documentation Link */}

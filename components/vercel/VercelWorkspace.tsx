@@ -764,6 +764,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                           onCopyOrInsert={() => setUserCode(activeCheckpoint.solutionCode || activeCheckpoint.initialCode || '')}
                           title="REFERENCE SPECIFICATION"
                           theme="sand"
+                          projectName={project.name}
+                          fileName={project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || 'app.js'}
                         />
                       </div>
 
