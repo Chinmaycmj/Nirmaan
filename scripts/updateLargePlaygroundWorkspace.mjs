@@ -1,4 +1,9 @@
-'use client';
+import fs from 'fs';
+import path from 'path';
+
+const workspacePath = path.resolve('components/vercel/VercelWorkspace.tsx');
+
+const workspaceContent = `'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Project, ProjectFile, ProjectStats } from '@/types/project';
@@ -71,7 +76,6 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
   const [checkpoints, setCheckpoints] = useState<LearningCheckpoint[]>(initialCheckpoints);
   const [milestones, setMilestones] = useState<ProjectMilestone[]>(initialMilestones);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
-  const [masteredConceptIds, setMasteredConceptIds] = useState<string[]>([]);
 
   // Main Workspace Mode: 'playground' (large learning studio) vs 'files' (full multi-file Monaco IDE)
   const [workspaceMode, setWorkspaceMode] = useState<'playground' | 'files'>('playground');
@@ -99,8 +103,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
   const stackLanguage = initialProject.techStack?.language || 'JavaScript';
   const stackFramework = initialProject.techStack?.framework || '';
   const initialGreeting = initialProject.techStack?.runtime?.includes('Terminal') || initialProject.techStack?.runtime?.includes('g++') || initialProject.techStack?.runtime?.includes('OpenJDK') || initialProject.techStack?.runtime?.includes('Python')
-    ? `I've architected your application in ${stackLanguage} (${initialProject.techStack.runtime}). The environment and live terminal runner are initialized on the right. Let's master the core engineering concepts together in your large coding playground!`
-    : `I've architected your application with ${stackLanguage}${stackFramework ? ` and ${stackFramework}` : ''}. The live sandbox is running on the right. Now let's write the core code and master the concepts together!`;
+    ? \`I've architected your application in \${stackLanguage} (\${initialProject.techStack.runtime}). The environment and live terminal runner are initialized on the right. Let's master the core engineering concepts together in your large coding playground!\`
+    : \`I've architected your application with \${stackLanguage}\${stackFramework ? \` and \${stackFramework}\` : ''}. The live sandbox is running on the right. Now let's write the core code and master the concepts together!\`;
 
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([
     { 
@@ -186,19 +190,6 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
     return '// Write your TypeScript code here...';
   };
 
-    const handleElementInspected = (filePath: string, line: number, conceptName: string) => {
-    const targetFile = project.files.find(f => f.path === filePath || f.name === filePath || f.path.endsWith(filePath));
-    if (targetFile) {
-      setProject(prev => ({ ...prev, activeFileId: targetFile.id }));
-    }
-    const explanation = aiService.getConceptExplanation(
-      activeCheckpoint?.conceptId || 'functions_parameters',
-      'beginner'
-    );
-    setActiveExplanation(explanation);
-    setIsExplanationOpen(true);
-  };
-
   // Progressive Hint Revealer
   const handleRevealNextHint = () => {
     if (!activeCheckpoint) return;
@@ -250,7 +241,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                       id: 'user-' + Date.now(),
                       fileId: file.id,
                       startLine: 1,
-                      endLine: userCode.split('\n').length,
+                      endLine: userCode.split('\\n').length,
                       authorType: 'USER_WRITTEN' as const,
                       timestamp: Date.now(),
                       conceptId: activeCheckpoint.conceptId
@@ -270,7 +261,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           ...prev,
           {
             role: 'assistant',
-            text: `🎉 Outstanding! You successfully mastered "${activeCheckpoint.conceptName}". ${evaluation.message}`
+            text: \`🎉 Outstanding! You successfully mastered "\${activeCheckpoint.conceptName}". \${evaluation.message}\`
           }
         ]);
       }
@@ -279,7 +270,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         passed: false,
         score: 0,
         title: 'Evaluation Error',
-        message: `Evaluation error: ${err.message || 'Please check your code syntax.'}`,
+        message: \`Evaluation error: \${err.message || 'Please check your code syntax.'}\`,
         testResults: [],
         diagnostic: {
           whatHappened: 'Code evaluation failed',
@@ -315,7 +306,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
     try {
       const resp = await aiService.generateChatResponse(
         promptText,
-        `Project: ${project.name}. Current concept: ${activeCheckpoint?.conceptName || 'Software Architecture'}.`,
+        \`Project: \${project.name}. Current concept: \${activeCheckpoint?.conceptName || 'Software Architecture'}.\`,
         aiSettings
       );
 
@@ -325,7 +316,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         ...prev,
         {
           role: 'assistant',
-          text: `Here is how that works in ${project.name}: we keep our core logic modular and predictable. You can inspect the code anytime in your large playground.`
+          text: \`Here is how that works in \${project.name}: we keep our core logic modular and predictable. You can inspect the code anytime in your large playground.\`
         }
       ]);
     } finally {
@@ -376,22 +367,22 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           <div className="hidden sm:flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs ml-2">
             <button
               onClick={() => setWorkspaceMode('playground')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all font-medium ${
+              className={\`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all font-medium \${
                 workspaceMode === 'playground'
                   ? 'bg-zinc-800 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-white'
-              }`}
+              }\`}
             >
               <Code2 className="w-3.5 h-3.5 text-indigo-400" />
               <span>Coding Playground</span>
             </button>
             <button
               onClick={() => setWorkspaceMode('files')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all font-medium ${
+              className={\`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all font-medium \${
                 workspaceMode === 'files'
                   ? 'bg-zinc-800 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-white'
-              }`}
+              }\`}
             >
               <FileCode className="w-3.5 h-3.5 text-zinc-400" />
               <span>Full File Tree</span>
@@ -415,11 +406,11 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           {/* AI Tutor Chat Toggle Button */}
           <button
             onClick={() => setIsTutorDrawerOpen(!isTutorDrawerOpen)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+            className={\`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors \${
               isTutorDrawerOpen 
                 ? 'bg-indigo-950/80 border-indigo-500/60 text-indigo-200' 
                 : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-300 hover:text-white'
-            }`}
+            }\`}
             title="Toggle AI Co-Developer Chat Drawer"
           >
             <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
@@ -468,11 +459,11 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           {/* Toggle Preview Window (Aside / Small) */}
           <button
             onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ml-1 ${
+            className={\`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ml-1 \${
               isPreviewOpen
                 ? 'bg-zinc-800 text-white border-zinc-700'
                 : 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
-            }`}
+            }\`}
             title={isPreviewOpen ? "Minimize Preview Window" : "Open Companion Preview Window"}
           >
             <Eye className="w-3.5 h-3.5" />
@@ -555,7 +546,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                         </div>
                         <div className="flex items-center gap-1 text-xs text-purple-400 font-semibold font-mono">
                           <span>{isAnalogyExpanded ? 'Collapse' : 'Expand Analogy'}</span>
-                          <ChevronDown className={`w-4 h-4 transition-transform ${isAnalogyExpanded ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={\`w-4 h-4 transition-transform \${isAnalogyExpanded ? 'rotate-180' : ''}\`} />
                         </div>
                       </button>
 
@@ -594,7 +585,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                         </span>
                       </div>
                       <span className="text-xs text-indigo-400 font-mono">
-                        {userCode.trim().length > 0 ? `${userCode.split('\n').length} lines written` : 'Ready'}
+                        {userCode.trim().length > 0 ? \`\${userCode.split('\\n').length} lines written\` : 'Ready'}
                       </span>
                     </div>
 
@@ -686,11 +677,11 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
                   {/* 5. Validation Result Banner */}
                   {lastEvaluation && (
-                    <div className={`p-4 rounded-xl border text-sm ${
+                    <div className={\`p-4 rounded-xl border text-sm \${
                       lastEvaluation.passed
                         ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-200'
                         : 'bg-rose-950/30 border-rose-500/50 text-rose-200'
-                    }`}>
+                    }\`}>
                       <div className="flex items-center gap-2 font-bold mb-1">
                         {lastEvaluation.passed ? (
                           <>
@@ -759,11 +750,11 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                 activeFile={activeFile}
                 onCodeChange={handleFileContentChange}
                 onExplainSelection={(code) => {
-                  setFollowupPrompt(`Explain this selected code: ${code}`);
+                  setFollowupPrompt(\`Explain this selected code: \${code}\`);
                   handleSendFollowup();
                 }}
                 onWhyDoesThisExist={(code) => {
-                  setFollowupPrompt(`Why does this code exist in our project architecture? ${code.slice(0, 100)}`);
+                  setFollowupPrompt(\`Why does this code exist in our project architecture? \${code.slice(0, 100)}\`);
                   handleSendFollowup();
                 }}
               />
@@ -816,14 +807,14 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                 <div className="flex items-center p-0.5 rounded-md bg-zinc-900 border border-zinc-800">
                   <button
                     onClick={() => setPreviewDevice('desktop')}
-                    className={`p-1 rounded ${previewDevice === 'desktop' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}
+                    className={\`p-1 rounded \${previewDevice === 'desktop' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}\`}
                     title="Desktop Preview"
                   >
                     <Monitor className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => setPreviewDevice('mobile')}
-                    className={`p-1 rounded ${previewDevice === 'mobile' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}`}
+                    className={\`p-1 rounded \${previewDevice === 'mobile' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white'}\`}
                     title="Mobile Preview"
                   >
                     <Smartphone className="w-3 h-3" />
@@ -850,13 +841,15 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
             {/* Live Preview Container */}
             <div className="flex-1 relative overflow-hidden bg-black flex items-center justify-center p-2">
-              <div className={`w-full h-full rounded-xl overflow-hidden shadow-2xl transition-all ${
+              <div className={\`w-full h-full rounded-xl overflow-hidden shadow-2xl transition-all \${
                 previewDevice === 'mobile' ? 'max-w-[320px] max-h-[580px] border border-zinc-800 rounded-3xl' : ''
-              }`}>
+              }\`}>
                 <LivePreview
                   key={previewKey}
-                  files={project.files}
-                  onElementInspected={handleElementInspected}
+                  project={project}
+                  activeCheckpoint={activeCheckpoint}
+                  device={previewDevice}
+                  onInspectElement={() => {}}
                 />
               </div>
             </div>
@@ -904,14 +897,14 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
               {chatMessages.map((msg, idx) => (
                 <div 
                   key={idx} 
-                  className={`flex gap-2.5 text-xs ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={\`flex gap-2.5 text-xs \${msg.role === 'user' ? 'justify-end' : 'justify-start'}\`}
                 >
                   <div 
-                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-sm ${
+                    className={\`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-sm \${
                       msg.role === 'user'
                         ? 'bg-zinc-800 text-white border border-zinc-700'
                         : 'bg-zinc-900 text-zinc-200 border border-zinc-800'
-                    }`}
+                    }\`}
                   >
                     {msg.text}
                   </div>
@@ -954,8 +947,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       <KnowledgeGraphModal
         isOpen={isKnowledgeGraphOpen}
         onClose={() => setIsKnowledgeGraphOpen(false)}
-        masteredConceptIds={masteredConceptIds}
-        activeConceptId={activeCheckpoint?.conceptId || ''}
+        checkpoints={checkpoints}
+        currentStepIndex={currentStepIndex}
       />
       <ProjectTimelineModal
         isOpen={isTimelineOpen}
@@ -967,11 +960,11 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         onClose={() => setIsSettingsOpen(false)}
         settings={aiSettings}
         onSaveSettings={setAiSettings}
-        onResetProject={() => {
-          setUserCode(activeCheckpoint?.initialCode || '');
-          setLastEvaluation(null);
-        }}
       />
     </div>
   );
 };
+`;
+
+fs.writeFileSync(workspacePath, workspaceContent, 'utf8');
+console.log('Successfully updated VercelWorkspace.tsx into a Large Coding Playground with companion preview aside');
