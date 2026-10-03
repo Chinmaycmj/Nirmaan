@@ -18,7 +18,7 @@ export interface ProjectFile {
   path: string;
   name: string;
   content: string;
-  language: 'typescript' | 'javascript' | 'tsx' | 'jsx' | 'css' | 'html' | 'json' | 'cpp' | 'java' | 'python';
+  language: 'typescript' | 'javascript' | 'tsx' | 'jsx' | 'css' | 'html' | 'json' | 'cpp' | 'java' | 'python' | 'markdown';
   version: number;
   isFolder?: boolean;
   contributions: CodeContribution[];

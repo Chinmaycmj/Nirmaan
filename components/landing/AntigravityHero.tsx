@@ -39,59 +39,8 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
   const [planningStep, setPlanningStep] = useState(0);
   const [isGithubModalOpen, setIsGithubModalOpen] = useState(false);
 
-  const quickPrompts = [
-    {
-      title: 'Pure JS & Modern CSS Grid Calculator',
-      tag: 'JavaScript + CSS',
-      desc: 'Native web standards: HTML5 keypad, modern CSS Grid layout, and pure ES6 DOM calculations without frameworks or TypeScript.',
-      prompt: 'Build me a simple calculator using Js and CSS.',
-    },
-    {
-      title: 'C++20 High-Precision Engine',
-      tag: 'C++20 (g++)',
-      desc: 'Direct compilation with strict type safety, switch logic, and IEEE 754 division-by-zero nan protection.',
-      prompt: 'Build me a calculator using C++ with zero-division error handling.',
-    },
-    {
-      title: 'Java 21 Enterprise Calculator',
-      tag: 'Java (OpenJDK)',
-      desc: 'Static class methods, clean bytecode compilation, and Double.NaN arithmetic handling.',
-      prompt: 'Build me a calculator using Java with zero-division error handling.',
-    },
-    {
-      title: 'Python Arithmetic Engine',
-      tag: 'Python 3',
-      desc: 'Python terminal engine with pure functions, zero-division error handling, and interactive console runner.',
-      prompt: 'Build me a calculator using Python with zero-division error handling.',
-    },
-    {
-      title: 'Interactive React Calculator',
-      tag: 'React + TypeScript',
-      desc: 'React 18 & TypeScript calculator with grid keypad, arithmetic operations, and precision formatting.',
-      prompt: 'Build me a simple calculator with arithmetic operations and modern keypad using React and TypeScript.',
-    },
-    {
-      title: 'Modern Task Hub',
-      tag: 'State & Events',
-      desc: 'Interactive todo manager with priority filters, completion toggle, and clean list animations.',
-      prompt: 'Build me a task management website using React, TypeScript and Tailwind CSS with priority tagging and status filters.',
-    },
-    {
-      title: 'Smart Expense Tracker',
-      tag: 'Financial Dashboard',
-      desc: 'React, TypeScript, Array methods, summary cards, and financial transactions.',
-      prompt: 'Build me a smart expense tracker with category summaries, add expense form, and transaction list using React, TypeScript, and Tailwind CSS.',
-    },
-    {
-      title: 'Vanilla Web Notes Studio',
-      tag: 'HTML + CSS + JS',
-      desc: 'Local browser notes app with real-time DOM card rendering and CSS transitions.',
-      prompt: 'Build me a notes app using vanilla JavaScript and CSS.',
-    },
-  ];
-
   const handleLaunch = (selectedPrompt?: string) => {
-    const finalPrompt = selectedPrompt || prompt.trim();
+    const finalPrompt = (selectedPrompt || prompt).trim();
     if (!finalPrompt) return;
 
     setIsPlanning(true);
@@ -343,43 +292,6 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
           >
             Import Repository →
           </button>
-        </div>
-
-        {/* Quick Inspiration Templates */}
-        <div className="w-full mt-8">
-          <div className="flex items-center justify-between mb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider px-1">
-            <span>Or try a featured project idea</span>
-            <span className="text-[11px] text-slate-400 font-normal">Click to start immediately</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {quickPrompts.map((item) => (
-              <div
-                key={item.title}
-                onClick={() => {
-                  setPrompt(item.prompt);
-                  handleLaunch(item.prompt);
-                }}
-                className="group p-4 bg-white hover:bg-slate-50/80 border border-slate-200 hover:border-[#0e3a75]/40 rounded-2xl cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-bold text-sm text-slate-900 group-hover:text-[#0e3a75] transition-colors">
-                      {item.title}
-                    </span>
-                    <span className="text-[10px] bg-blue-50 text-[#0e3a75] border border-blue-200 px-2 py-0.5 rounded-full font-semibold">
-                      {item.tag}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{item.desc}</p>
-                </div>
-                <div className="mt-3 flex items-center space-x-1 text-xs font-semibold text-[#0e3a75] group-hover:text-blue-600 transition-colors">
-                  <span>Build with AI</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </main>
 

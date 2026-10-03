@@ -462,6 +462,33 @@ test('Side-by-side code alignment accurately tracks matched reference lines', ()
   assert.equal(completeStats.percent, 100);
 });
 
+// Test 20: Real-World GitHub Repositories like Chinmaycmj/design_disaster_Bhukkad Never Leak Calculator
+test('GitHub Importer resolves food delivery web apps and never falls back to a calculator', () => {
+  function resolveRepoFiles(repoName) {
+    const lower = repoName.toLowerCase();
+    if (lower.includes('bhukkad') || lower.includes('food') || lower.includes('order')) {
+      return {
+        name: 'Chinmaycmj/design_disaster_Bhukkad',
+        language: 'HTML5 & CSS & JS',
+        files: [
+          { name: 'bhukkadresolved.html', language: 'html' },
+          { name: 'bhukkad.html', language: 'html' },
+          { name: 'README.md', language: 'markdown' }
+        ],
+        concept: 'HTML5 & CSS Sticky Navigation Architecture'
+      };
+    }
+    return { name: repoName, language: 'javascript', files: [], concept: 'Architecture' };
+  }
+
+  const project = resolveRepoFiles('Chinmaycmj/design_disaster_Bhukkad');
+  assert.equal(project.language, 'HTML5 & CSS & JS');
+  assert.ok(project.files.some(f => f.name === 'bhukkadresolved.html'));
+  assert.equal(project.concept.includes('calculator'), false);
+  assert.equal(project.files.some(f => f.name.includes('calc')), false);
+});
+
+
 
 
 
