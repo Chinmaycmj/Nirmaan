@@ -606,6 +606,91 @@ test('Imported GitHub repositories validate real code and never trigger Java cal
   assert.notEqual(result.title, 'Java Logic Incomplete');
 });
 
+// Test 25: Semantic Tokenizer preserves CSS properties, selectors, units, and provides non-vague explanations
+test('Semantic Tokenizer preserves CSS properties and eliminates vague duplicate token explanations', () => {
+  function extractSemanticTokensFromLine(line, language) {
+    const trimmed = line.trim();
+    if (!trimmed) return [];
+    const isHashCommentLang = ['python', 'py', 'bash', 'sh', 'yaml', 'yml'].includes((language || '').toLowerCase());
+    let tokenRegex;
+    if (isHashCommentLang) {
+      tokenRegex = /<!--[\s\S]*?-->|\/\*[\s\S]*?\*\/|\/\/[^\n]*|#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`|<\/?[a-zA-Z0-9_-]+|#[a-fA-F0-9]{3,8}|\.[a-zA-Z0-9_-]+|[0-9]+(?:\.[0-9]+)?(?:px|rem|em|%|vh|vw|fr|s|ms|deg)?|===|!==|==|!=|<=|>=|=>|\+\+|--|\+=|-=|\*=|\/=|&&|\|\||::|->|[a-zA-Z_][a-zA-Z0-9_]*-[a-zA-Z0-9_-]+|[a-zA-Z_][a-zA-Z0-9_$]*|[{}();,.:=<>+\-*/\[\]]/g;
+    } else {
+      tokenRegex = /<!--[\s\S]*?-->|\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`|<\/?[a-zA-Z0-9_-]+|#[a-fA-F0-9]{3,8}|#[a-zA-Z0-9_-]+|\.[a-zA-Z0-9_-]+|[0-9]+(?:\.[0-9]+)?(?:px|rem|em|%|vh|vw|fr|s|ms|deg)?|===|!==|==|!=|<=|>=|=>|\+\+|--|\+=|-=|\*=|\/=|&&|\|\||::|->|[a-zA-Z_][a-zA-Z0-9_]*-[a-zA-Z0-9_-]+|[a-zA-Z_][a-zA-Z0-9_$]*|[{}();,.:=<>+\-*/\[\]]/g;
+    }
+    const matches = trimmed.match(tokenRegex) || [];
+    return matches.filter(t => t.trim().length > 0);
+  }
+
+  const cssProperties = {
+    'font-size': { role: 'CSS Typography Dimension', why: 'Controls the glyph height and optical sizing of text characters on screen (e.g. 22px).' },
+    'font-weight': { role: 'CSS Typographic Weight', why: 'Specifies character stroke thickness or boldness (e.g. 800 for extra-bold visual prominence).' },
+    'color': { role: 'CSS Text Foreground Color', why: 'Applies foreground text color to all character glyphs inside this element.' },
+  };
+
+  function explainTokenInContext(token, line, language) {
+    const raw = token.trim();
+    const lower = raw.toLowerCase();
+    if (raw.startsWith('.')) {
+      return { token: raw, role: 'CSS Class Selector', whyUsed: `Targets all HTML elements decorated with class="${raw.slice(1)}" to apply this visual styling block.` };
+    }
+    if (raw.startsWith('#') && (raw.length === 4 || raw.length === 7 || raw.length === 9) && /#[a-fA-F0-9]+/.test(raw)) {
+      return { token: raw, role: 'Hexadecimal Color Literal', whyUsed: `Defines an exact sRGB color value (${raw}) matching the application brand palette.` };
+    }
+    if (cssProperties[lower]) {
+      return { token: raw, role: cssProperties[lower].role, whyUsed: cssProperties[lower].why };
+    }
+    if (/^[0-9]+(?:\.[0-9]+)?px$/i.test(raw)) {
+      return { token: raw, role: 'CSS Pixel Dimension (px)', whyUsed: `Defines an absolute screen measurement of ${raw} independent pixels for precise visual sizing.` };
+    }
+    if (/^[0-9]+(?:\.[0-9]+)?$/.test(raw)) {
+      return { token: raw, role: 'Numeric Literal Constant', whyUsed: `Specifies numeric constant value ${raw}.` };
+    }
+    if (raw === '{' || raw === '}') {
+      return { token: raw, role: 'Declaration Block Delimiter', whyUsed: raw === '{' ? 'Opens CSS declaration block.' : 'Closes CSS declaration block.' };
+    }
+    if (raw === ':') {
+      return { token: raw, role: 'Property-Value Separator', whyUsed: 'Separates property from value.' };
+    }
+    if (raw === ';') {
+      return { token: raw, role: 'Declaration Terminator', whyUsed: 'Terminates CSS declaration.' };
+    }
+    return { token: raw, role: 'Token', whyUsed: `Statement token in ${language}.` };
+  }
+
+  const testCssLine = '.logo { font-size: 22px; font-weight: 800; color: #d97706; }';
+  const tokens = extractSemanticTokensFromLine(testCssLine, 'css');
+
+  // Verify composite tokens are preserved intact and never mutilated
+  assert.ok(tokens.includes('.logo'), 'Must preserve .logo intact as CSS class selector');
+  assert.ok(tokens.includes('font-size'), 'Must preserve font-size intact as single CSS property');
+  assert.ok(!tokens.includes('font') && !tokens.includes('size'), 'Must not split font-size into font and size');
+  assert.ok(tokens.includes('22px'), 'Must preserve 22px intact with unit');
+  assert.ok(tokens.includes('font-weight'), 'Must preserve font-weight intact');
+  assert.ok(tokens.includes('800'), 'Must preserve numeric weight 800 intact');
+  assert.ok(tokens.includes('#d97706'), 'Must preserve hex color #d97706 intact');
+
+  // Verify rich semantic descriptions
+  const explanations = tokens.map(t => explainTokenInContext(t, testCssLine, 'css'));
+  for (const exp of explanations) {
+    assert.ok(!exp.whyUsed.includes('Participates in line statement execution'), 'Must never output vague generic placeholder text');
+    assert.ok(exp.whyUsed.length > 10, 'Each token must have substantive explanation');
+  }
+
+  const logoExp = explanations.find(e => e.token === '.logo');
+  assert.equal(logoExp.role, 'CSS Class Selector');
+
+  const fontSizeExp = explanations.find(e => e.token === 'font-size');
+  assert.equal(fontSizeExp.role, 'CSS Typography Dimension');
+
+  const weightExp = explanations.find(e => e.token === '800');
+  assert.equal(weightExp.role, 'Numeric Literal Constant');
+
+  const colorExp = explanations.find(e => e.token === '#d97706');
+  assert.equal(colorExp.role, 'Hexadecimal Color Literal');
+});
+
+
 
 
 

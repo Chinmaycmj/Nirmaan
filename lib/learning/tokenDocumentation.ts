@@ -1,3 +1,5 @@
+import { extractSemanticTokensFromLine, explainTokenInContext } from '@/lib/ai/codeLineAnalyzer';
+
 export interface TokenDoc {
   token: string;
   name: string;
@@ -412,8 +414,103 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     phonetic: '[yoos stayt]',
     grammarRole: 'State Persistence Hook Primitive',
   },
+
+  // ================= CSS & TYPOGRAPHY TOKENS =================
+  'font-size': {
+    token: 'font-size',
+    name: 'font-size CSS property',
+    category: 'css_property',
+    language: 'css',
+    shortDescription: 'Sets the size of the font glyphs on screen.',
+    detailedExplanation: 'Specifies the vertical dimension of text glyphs. Can be defined in absolute units (px) or relative units (rem, em) for responsive accessibility scaling.',
+    realLifeAnalogy: 'Like selecting point size (e.g. 24pt vs 12pt) in a word processor to make a headline stand out over body text.',
+    documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/font-size',
+    documentationSource: 'MDN Web Docs',
+    syntaxExample: 'font-size: 22px;',
+    syllableBreakdown: 'font size',
+    phonetic: '[fahnt sayz]',
+    grammarRole: 'CSS Typography Property',
+  },
+  'font-weight': {
+    token: 'font-weight',
+    name: 'font-weight CSS property',
+    category: 'css_property',
+    language: 'css',
+    shortDescription: 'Sets the typographic weight or boldness of character strokes.',
+    detailedExplanation: 'Accepts numeric values from 100 to 900 (e.g. 400 normal, 700 bold, 800 extra-bold). Controls the visual thickness of letterforms.',
+    realLifeAnalogy: 'Like switching from a fine-point pen to a heavy chisel-tip marker for bold emphasis.',
+    documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight',
+    documentationSource: 'MDN Web Docs',
+    syntaxExample: 'font-weight: 800;',
+    syllableBreakdown: 'font weight',
+    phonetic: '[fahnt wayt]',
+    grammarRole: 'CSS Font Weight Specifier',
+  },
+  'color': {
+    token: 'color',
+    name: 'color CSS property',
+    category: 'css_property',
+    language: 'css',
+    shortDescription: 'Sets the foreground color value of an element\'s text content.',
+    detailedExplanation: 'Controls the foreground color using hex (#d97706), rgb(), hsl(), or named colors. Automatically cascades to character glyphs.',
+    realLifeAnalogy: 'Like dipping a paintbrush into amber watercolor to letter a logo.',
+    documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/color',
+    documentationSource: 'MDN Web Docs',
+    syntaxExample: 'color: #d97706;',
+    syllableBreakdown: 'col·or',
+    phonetic: '[kúl-er]',
+    grammarRole: 'CSS Foreground Color Property',
+  },
+  '.logo': {
+    token: '.logo',
+    name: '.logo class selector',
+    category: 'css_property',
+    language: 'css',
+    shortDescription: 'CSS class selector targeting elements with class="logo".',
+    detailedExplanation: 'The leading dot signifies a class selector in CSS. Matches any HTML node in the DOM having class="logo" to apply brand typography and styling.',
+    realLifeAnalogy: 'Like putting a branded uniform on restaurant staff so customers immediately recognize them.',
+    documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/Class_selectors',
+    documentationSource: 'MDN Web Docs',
+    syntaxExample: '.logo { font-size: 22px; font-weight: 800; }',
+    syllableBreakdown: 'dot lo·go',
+    phonetic: '[dot loh-goh]',
+    grammarRole: 'CSS Class Selector Target',
+  },
+  '22px': {
+    token: '22px',
+    name: '22px dimension',
+    category: 'constant',
+    language: 'css',
+    shortDescription: 'Absolute CSS length unit equal to 22 screen pixels.',
+    detailedExplanation: 'Represents 22 physical reference pixels on a standard 96dpi display. Provides exact pixel-perfect control over heading and emblem dimensions.',
+    realLifeAnalogy: 'Like measuring an exact 22-millimeter height with a drafting ruler.',
+    documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/length#px',
+    documentationSource: 'MDN Web Docs',
+    syntaxExample: 'font-size: 22px;',
+    syllableBreakdown: 'twen·ty two P-X',
+    phonetic: '[twen-tee-too pik-suhlz]',
+    grammarRole: 'CSS Pixel Dimension Literal',
+  },
+  '800': {
+    token: '800',
+    name: '800 (Extra Bold) weight',
+    category: 'constant',
+    language: 'css',
+    shortDescription: 'Numeric font weight value corresponding to Extra Bold / Heavy.',
+    detailedExplanation: 'On standard OpenType font cascades, 800 maps to Extra-Bold typography, rendering thick character strokes for commanding visual hierarchy.',
+    realLifeAnalogy: 'Like setting a headline in heavy bold cast metal type.',
+    documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight#common_weight_name_mapping',
+    documentationSource: 'MDN Web Docs',
+    syntaxExample: 'font-weight: 800;',
+    syllableBreakdown: 'eight hun·dred',
+    phonetic: '[ayt hún-drid]',
+    grammarRole: 'Numeric Typographic Weight Constant',
+  },
 };
 
+/**
+ * Decomposes any line of code into its individual syllables and syntax tokens.
+ */
 /**
  * Decomposes any line of code into its individual syllables and syntax tokens.
  */
@@ -421,24 +518,24 @@ export function decomposeLineIntoSyllablesAndTokens(line: string, languageHint?:
   const trimmed = line.trim();
   if (!trimmed) return [];
 
-  // Match identifiers, strings, keywords, operators, delimiters
-  const tokenRegex = /([a-zA-Z0-9_:]+|==|!=|<=|>=|\+=|-=|\*=|\/=|=>|\/\/|\/\*|\*\/|[+\-*/=<>{}();,\.']|"[^"]*"|'[^']*')/g;
-  const matches = trimmed.match(tokenRegex) || [trimmed];
+  // Extract intact semantic tokens preserving CSS properties, units, selectors, and HTML tags
+  const matches = extractSemanticTokensFromLine(trimmed, languageHint || 'javascript');
   const result: LineSyllableToken[] = [];
 
   for (const match of matches) {
-    const doc = findTokenDocumentation(match, languageHint);
+    const exactDoc = TOKEN_DOCUMENTATION_REGISTRY[match] || TOKEN_DOCUMENTATION_REGISTRY[match.toLowerCase()];
+    const contextInfo = explainTokenInContext(match, trimmed, languageHint || 'javascript');
     const category = categorizeToken(match);
 
     result.push({
       text: match,
       category,
-      syllables: doc?.syllableBreakdown || generateSyllables(match),
-      phonetic: doc?.phonetic || `[${match.toLowerCase()}]`,
-      grammarRole: doc?.grammarRole || deriveGrammarRole(match, category),
-      explanation: doc?.shortDescription || `Syntax token '${match}' in ${languageHint || 'code'}.`,
-      docUrl: doc?.documentationUrl || getDocumentationSearchUrl(match, languageHint),
-      docSource: doc?.documentationSource || getOfficialDocSourceForLanguage(languageHint),
+      syllables: exactDoc?.syllableBreakdown || generateSyllables(match),
+      phonetic: exactDoc?.phonetic || `[${match.toLowerCase()}]`,
+      grammarRole: exactDoc?.grammarRole || contextInfo.role,
+      explanation: exactDoc?.shortDescription || contextInfo.whyUsed,
+      docUrl: exactDoc?.documentationUrl || contextInfo.docUrl,
+      docSource: exactDoc?.documentationSource || (contextInfo.docSource as any),
     });
   }
 
@@ -503,26 +600,21 @@ export function findTokenDocumentation(rawToken: string, languageHint?: string):
     }
   }
 
-  for (const [key, doc] of Object.entries(TOKEN_DOCUMENTATION_REGISTRY)) {
-    if (clean.includes(key) || key.includes(clean)) {
-      return doc;
-    }
-  }
-
-  const officialSource = getOfficialDocSourceForLanguage(languageHint);
-  const searchUrl = getDocumentationSearchUrl(clean, languageHint);
+  // Generate deep, context-aware token breakdown instead of generic vague fallback
+  const contextInfo = explainTokenInContext(clean, clean, languageHint || 'javascript');
+  const officialSource = (contextInfo.docSource as any) || getOfficialDocSourceForLanguage(languageHint);
 
   return {
     token: clean,
-    name: `${clean} syntax`,
+    name: `${clean} (${contextInfo.role})`,
     category: 'keyword',
     language: (languageHint as any) || 'universal',
-    shortDescription: `Component of ${languageHint || 'programming'} code statement.`,
-    detailedExplanation: `The identifier "${clean}" performs an essential role in this code block. Click the official source link below to view its complete specification, parameters, and syntax rules.`,
-    documentationUrl: searchUrl,
+    shortDescription: contextInfo.whyUsed,
+    detailedExplanation: `${contextInfo.whyUsed} Consult the official reference link below for complete specification rules and parameters.`,
+    documentationUrl: contextInfo.docUrl,
     documentationSource: officialSource,
     syllableBreakdown: generateSyllables(clean),
-    grammarRole: 'Code Identifier / Statement Component',
+    grammarRole: contextInfo.role,
   };
 }
 
@@ -547,14 +639,33 @@ export function explainCodeLine(lineContent: string, lineNumber: number, languag
     }
   }
 
-  const primaryToken = tokensFound[0] || findTokenDocumentation(trimmed, language);
-  const externalDocUrl = primaryToken ? primaryToken.documentationUrl : getDocumentationSearchUrl(trimmed, language);
-  const docSource = primaryToken ? primaryToken.documentationSource : getOfficialDocSourceForLanguage(language);
   const syllables = decomposeLineIntoSyllablesAndTokens(lineContent, language);
+  const primaryToken = tokensFound[0] || findTokenDocumentation(trimmed, language);
+  const firstSyllable = syllables[0];
+  const externalDocUrl = primaryToken ? primaryToken.documentationUrl : (firstSyllable?.docUrl || getDocumentationSearchUrl(trimmed, language));
+  const docSource = primaryToken ? primaryToken.documentationSource : (firstSyllable?.docSource || getOfficialDocSourceForLanguage(language));
 
-  let explanation = `Line ${lineNumber} executes this statement.`;
-  if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('#')) {
-    explanation = `Code comment explaining the rationale or specifications for upcoming instructions.`;
+  let explanation = '';
+  if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('#') || trimmed.startsWith('<!--')) {
+    explanation = `Code documentation comment explaining architectural specifications and logic intent.`;
+  } else if (trimmed.includes('font-size') || trimmed.includes('font-weight') || trimmed.includes('.logo') || (trimmed.includes('{') && trimmed.includes(':') && trimmed.includes(';'))) {
+    explanation = `CSS presentation rule configuring typography sizing, font weight, or color aesthetics.`;
+  } else if (trimmed.startsWith('<') && !trimmed.startsWith('<!--')) {
+    explanation = `Semantic HTML element defining visual component hierarchy and DOM layout structure.`;
+  } else if (trimmed.includes('useState')) {
+    explanation = `React hook declaring reactive component state and updater function for re-renders.`;
+  } else if (trimmed.includes('useEffect')) {
+    explanation = `React hook managing side-effect lifecycles and subscription cleanup.`;
+  } else if (trimmed.includes('export default') || trimmed.includes('export function')) {
+    explanation = `Module export declaring and exposing the primary component architecture.`;
+  } else if (trimmed.includes('import ')) {
+    explanation = `ES Module import loading external components, utilities, or styles into this scope.`;
+  } else if (trimmed.includes('addEventListener')) {
+    explanation = `Attaches a click event listener to catch user keypad taps and trigger corresponding calculation updates.`;
+  } else if (trimmed.includes('display: grid') || trimmed.includes('grid-template-columns')) {
+    explanation = `Establishes a 2D CSS Grid formatting context so buttons arrange into structured keypad rows and columns.`;
+  } else if (trimmed.includes('gap:')) {
+    explanation = `Sets uniform spacing between keypad buttons without requiring complex margin calculations.`;
   } else if (trimmed.includes('switch')) {
     explanation = `Evaluates the operator and branches directly to matching case conditions for rapid O(1) execution.`;
   } else if (trimmed.includes('case')) {
@@ -563,16 +674,11 @@ export function explainCodeLine(lineContent: string, lineNumber: number, languag
     explanation = `Defensive guard against division by zero: returns Not-a-Number (NaN) without crashing the program.`;
   } else if (trimmed.includes('return')) {
     explanation = `Exits the function immediately and passes the computed calculation result back to the caller.`;
-  } else if (trimmed.includes('addEventListener')) {
-    explanation = `Attaches a click event listener to catch user keypad taps and trigger corresponding calculation updates.`;
-  } else if (trimmed.includes('display: grid')) {
-    explanation = `Establishes a 2D CSS Grid formatting context so buttons arrange into structured keypad rows and columns.`;
-  } else if (trimmed.includes('grid-template-columns')) {
-    explanation = `Configures the keypad layout into 4 equal-width responsive fractional columns.`;
-  } else if (trimmed.includes('gap:')) {
-    explanation = `Sets uniform spacing between keypad buttons without requiring complex margin calculations.`;
   } else if (trimmed.includes('def calculate') || trimmed.includes('double calculate') || trimmed.includes('function calculate')) {
     explanation = `Defines the primary arithmetic calculation function with strict parameter signatures and return types.`;
+  } else {
+    const firstWord = syllables[0]?.text || 'statement';
+    explanation = `Executes instruction resolving '${firstWord}' within the active ${language} execution flow.`;
   }
 
   return {
