@@ -9,6 +9,20 @@ export interface TokenDoc {
   documentationUrl: string;
   documentationSource: 'MDN Web Docs' | 'cppreference.com' | 'Oracle Java Docs' | 'Python Docs' | 'React Docs' | 'W3C / Web Standards';
   syntaxExample?: string;
+  syllableBreakdown?: string;
+  phonetic?: string;
+  grammarRole?: string;
+}
+
+export interface LineSyllableToken {
+  text: string;
+  category: 'keyword' | 'type' | 'identifier' | 'operator' | 'punctuation' | 'literal' | 'comment';
+  syllables?: string;
+  phonetic?: string;
+  grammarRole: string;
+  explanation: string;
+  docUrl: string;
+  docSource: string;
 }
 
 export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
@@ -24,6 +38,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://en.cppreference.com/w/cpp/language/switch',
     documentationSource: 'cppreference.com',
     syntaxExample: "switch (op) { case '+': return a + b; }",
+    syllableBreakdown: 'switch',
+    phonetic: '[swich]',
+    grammarRole: 'Selection Statement Keyword',
   },
   'case': {
     token: 'case',
@@ -36,6 +53,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://en.cppreference.com/w/cpp/language/switch',
     documentationSource: 'cppreference.com',
     syntaxExample: "case '+': return prev + current;",
+    syllableBreakdown: 'case',
+    phonetic: '[kays]',
+    grammarRole: 'Branch Target Label',
   },
   'std::nan': {
     token: 'std::nan',
@@ -48,6 +68,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://en.cppreference.com/w/cpp/numeric/math/nan',
     documentationSource: 'cppreference.com',
     syntaxExample: 'return std::nan("");',
+    syllableBreakdown: 'S-T-D col-on col-on N-A-N',
+    phonetic: '[es-tee-dee nan]',
+    grammarRole: 'Standard Library Numerical Constant',
   },
   'double': {
     token: 'double',
@@ -60,6 +83,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://en.cppreference.com/w/cpp/language/types',
     documentationSource: 'cppreference.com',
     syntaxExample: 'double calculate(double prev, double current, char op);',
+    syllableBreakdown: 'dou·ble',
+    phonetic: '[dúb-uhl]',
+    grammarRole: 'Primitive Floating-Point Type Specifier',
   },
   'char': {
     token: 'char',
@@ -72,6 +98,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://en.cppreference.com/w/cpp/language/types',
     documentationSource: 'cppreference.com',
     syntaxExample: "char op = '+';",
+    syllableBreakdown: 'char',
+    phonetic: '[chahr]',
+    grammarRole: 'Character Primitive Type Specifier',
   },
   '#include': {
     token: '#include',
@@ -84,6 +113,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://en.cppreference.com/w/cpp/preprocessor/include',
     documentationSource: 'cppreference.com',
     syntaxExample: '#include <iostream>',
+    syllableBreakdown: 'hash in·clude',
+    phonetic: '[hash in-klood]',
+    grammarRole: 'Preprocessor Macro Directive',
   },
 
   // ================= JAVA TOKENS =================
@@ -98,6 +130,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://docs.oracle.com/javase/tutorial/java/javaOO/classvars.html',
     documentationSource: 'Oracle Java Docs',
     syntaxExample: 'public static double calculate(double prev, double current, char op)',
+    syllableBreakdown: 'pub·lic stat·ic',
+    phonetic: '[púb-lik stát-ik]',
+    grammarRole: 'Access & Storage Specifier',
   },
   'Double.NaN': {
     token: 'Double.NaN',
@@ -110,6 +145,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Double.html#NaN',
     documentationSource: 'Oracle Java Docs',
     syntaxExample: 'if (current == 0.0) return Double.NaN;',
+    syllableBreakdown: 'Dou·ble dot N-A-N',
+    phonetic: '[dúb-uhl dot nan]',
+    grammarRole: 'Wrapper Class Floating Constant',
   },
 
   // ================= JAVASCRIPT & DOM TOKENS =================
@@ -124,6 +162,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener',
     documentationSource: 'MDN Web Docs',
     syntaxExample: "button.addEventListener('click', (e) => { ... });",
+    syllableBreakdown: 'add E·vent Lis·ten·er',
+    phonetic: '[ad ih-vént lís-uh-ner]',
+    grammarRole: 'Event Target Dispatch Method',
   },
   'querySelector': {
     token: 'querySelector',
@@ -136,6 +177,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector',
     documentationSource: 'MDN Web Docs',
     syntaxExample: "const display = document.querySelector('#display');",
+    syllableBreakdown: 'que·ry Se·lec·tor',
+    phonetic: '[kwéer-ee sih-lék-ter]',
+    grammarRole: 'DOM Node Query Method',
   },
   'querySelectorAll': {
     token: 'querySelectorAll',
@@ -148,6 +192,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll',
     documentationSource: 'MDN Web Docs',
     syntaxExample: "const keys = document.querySelectorAll('.keypad button');",
+    syllableBreakdown: 'que·ry Se·lec·tor All',
+    phonetic: '[kwéer-ee sih-lék-ter awl]',
+    grammarRole: 'DOM NodeList Query Method',
   },
   'dataset': {
     token: 'dataset',
@@ -160,6 +207,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset',
     documentationSource: 'MDN Web Docs',
     syntaxExample: "const digit = button.dataset.digit;",
+    syllableBreakdown: 'da·ta·set',
+    phonetic: '[déy-tuh-set]',
+    grammarRole: 'DOM String Map Property',
   },
   'textContent': {
     token: 'textContent',
@@ -172,6 +222,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent',
     documentationSource: 'MDN Web Docs',
     syntaxExample: "display.textContent = '42';",
+    syllableBreakdown: 'text Con·tent',
+    phonetic: '[tekst kón-tent]',
+    grammarRole: 'Raw String Content Accessor',
   },
   'parseFloat': {
     token: 'parseFloat',
@@ -184,6 +237,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseFloat',
     documentationSource: 'MDN Web Docs',
     syntaxExample: "const val = parseFloat('3.14159');",
+    syllableBreakdown: 'parse Float',
+    phonetic: '[pahrs floht]',
+    grammarRole: 'Global Numerical Conversion Function',
   },
   'return': {
     token: 'return',
@@ -196,6 +252,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/return',
     documentationSource: 'MDN Web Docs',
     syntaxExample: 'return prev + current;',
+    syllableBreakdown: 're·turn',
+    phonetic: '[rih-túrn]',
+    grammarRole: 'Control Transfer Keyword',
   },
   'const': {
     token: 'const',
@@ -208,6 +267,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const',
     documentationSource: 'MDN Web Docs',
     syntaxExample: 'const maxItems = 100;',
+    syllableBreakdown: 'const',
+    phonetic: '[konst]',
+    grammarRole: 'Immutable Block-Scope Binding Keyword',
   },
   'let': {
     token: 'let',
@@ -220,6 +282,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let',
     documentationSource: 'MDN Web Docs',
     syntaxExample: 'let currentInput = "0";',
+    syllableBreakdown: 'let',
+    phonetic: '[let]',
+    grammarRole: 'Mutable Local Variable Declaration Keyword',
   },
 
   // ================= CSS GRID TOKENS =================
@@ -234,6 +299,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/display',
     documentationSource: 'MDN Web Docs',
     syntaxExample: '.keypad { display: grid; }',
+    syllableBreakdown: 'dis·play col-on grid',
+    phonetic: '[dih-spléy gríd]',
+    grammarRole: 'Formatting Context Declaration',
   },
   'grid-template-columns': {
     token: 'grid-template-columns',
@@ -246,6 +314,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/grid-template-columns',
     documentationSource: 'MDN Web Docs',
     syntaxExample: 'grid-template-columns: repeat(4, 1fr);',
+    syllableBreakdown: 'grid tem·plate col·umns',
+    phonetic: '[gríd tém-plit kól-uhmz]',
+    grammarRole: 'Track List Definition Property',
   },
   'repeat(4, 1fr)': {
     token: 'repeat(4, 1fr)',
@@ -258,6 +329,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/repeat',
     documentationSource: 'MDN Web Docs',
     syntaxExample: 'grid-template-columns: repeat(4, 1fr);',
+    syllableBreakdown: 're·peat four, one F-R',
+    phonetic: '[rih-péet fohr, wún ef-ahr]',
+    grammarRole: 'CSS Functional Notation',
   },
   'gap': {
     token: 'gap',
@@ -270,6 +344,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://developer.mozilla.org/en-US/docs/Web/CSS/gap',
     documentationSource: 'MDN Web Docs',
     syntaxExample: 'gap: 12px;',
+    syllableBreakdown: 'gap',
+    phonetic: '[gap]',
+    grammarRole: 'Layout Gutter Dimension Property',
   },
 
   // ================= PYTHON TOKENS =================
@@ -284,6 +361,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://docs.python.org/3/reference/compound_stmts.html#def',
     documentationSource: 'Python Docs',
     syntaxExample: 'def calculate(prev, current, op):',
+    syllableBreakdown: 'def',
+    phonetic: '[def]',
+    grammarRole: 'Function Definition Header Keyword',
   },
   'float("nan")': {
     token: 'float("nan")',
@@ -296,6 +376,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://docs.python.org/3/library/functions.html#float',
     documentationSource: 'Python Docs',
     syntaxExample: 'return float("nan")',
+    syllableBreakdown: 'float of nan',
+    phonetic: '[floht ov nan]',
+    grammarRole: 'Type Constructor Instantiation',
   },
   'if/elif/else': {
     token: 'if/elif/else',
@@ -308,6 +391,9 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://docs.python.org/3/reference/compound_stmts.html#if',
     documentationSource: 'Python Docs',
     syntaxExample: "if op == '+': return prev + current",
+    syllableBreakdown: 'if, el·if, else',
+    phonetic: '[if, él-if, els]',
+    grammarRole: 'Compound Conditional Statement',
   },
 
   // ================= REACT & TYPESCRIPT =================
@@ -322,8 +408,82 @@ export const TOKEN_DOCUMENTATION_REGISTRY: Record<string, TokenDoc> = {
     documentationUrl: 'https://react.dev/reference/react/useState',
     documentationSource: 'React Docs',
     syntaxExample: "const [count, setCount] = useState(0);",
+    syllableBreakdown: 'use State',
+    phonetic: '[yoos stayt]',
+    grammarRole: 'State Persistence Hook Primitive',
   },
 };
+
+/**
+ * Decomposes any line of code into its individual syllables and syntax tokens.
+ */
+export function decomposeLineIntoSyllablesAndTokens(line: string, languageHint?: string): LineSyllableToken[] {
+  const trimmed = line.trim();
+  if (!trimmed) return [];
+
+  // Match identifiers, strings, keywords, operators, delimiters
+  const tokenRegex = /([a-zA-Z0-9_:]+|==|!=|<=|>=|\+=|-=|\*=|\/=|=>|\/\/|\/\*|\*\/|[+\-*/=<>{}();,\.']|"[^"]*"|'[^']*')/g;
+  const matches = trimmed.match(tokenRegex) || [trimmed];
+  const result: LineSyllableToken[] = [];
+
+  for (const match of matches) {
+    const doc = findTokenDocumentation(match, languageHint);
+    const category = categorizeToken(match);
+
+    result.push({
+      text: match,
+      category,
+      syllables: doc?.syllableBreakdown || generateSyllables(match),
+      phonetic: doc?.phonetic || `[${match.toLowerCase()}]`,
+      grammarRole: doc?.grammarRole || deriveGrammarRole(match, category),
+      explanation: doc?.shortDescription || `Syntax token '${match}' in ${languageHint || 'code'}.`,
+      docUrl: doc?.documentationUrl || getDocumentationSearchUrl(match, languageHint),
+      docSource: doc?.documentationSource || getOfficialDocSourceForLanguage(languageHint),
+    });
+  }
+
+  return result;
+}
+
+function categorizeToken(token: string): LineSyllableToken['category'] {
+  if (['switch', 'case', 'return', 'def', 'if', 'else', 'elif', 'const', 'let', 'public', 'static', 'class'].includes(token)) {
+    return 'keyword';
+  }
+  if (['double', 'char', 'int', 'float', 'void', 'boolean', 'string', 'number'].includes(token)) {
+    return 'type';
+  }
+  if (['+', '-', '*', '/', '=', '==', '!=', '<', '>', '+=', '-='].includes(token)) {
+    return 'operator';
+  }
+  if (['{', '}', '(', ')', ';', ',', ':', '.'].includes(token)) {
+    return 'punctuation';
+  }
+  if (token.startsWith('"') || token.startsWith("'") || /^[0-9]+(\.[0-9]+)?$/.test(token)) {
+    return 'literal';
+  }
+  if (token.startsWith('//') || token.startsWith('#')) {
+    return 'comment';
+  }
+  return 'identifier';
+}
+
+function deriveGrammarRole(token: string, category: LineSyllableToken['category']): string {
+  switch (category) {
+    case 'keyword': return 'Reserved Control Language Keyword';
+    case 'type': return 'Data Type Specifier';
+    case 'operator': return 'Arithmetic / Assignment Operator';
+    case 'punctuation': return 'Syntactic Delimiter / Scope Boundary';
+    case 'literal': return 'Constant Literal Value';
+    case 'comment': return 'Documentation Annotation';
+    default: return 'Identifier / Symbol Name';
+  }
+}
+
+function generateSyllables(text: string): string {
+  if (text.length <= 4) return text;
+  // Simple heuristic hyphenation for readability
+  return text.replace(/([aeiouy]{1,2})([^aeiouy\s]{1,2})([aeiouy])/gi, '$1·$2$3');
+}
 
 /**
  * Finds matching documentation for a token or line of code.
@@ -332,12 +492,10 @@ export function findTokenDocumentation(rawToken: string, languageHint?: string):
   const clean = rawToken.trim();
   if (!clean) return null;
 
-  // Direct lookup
   if (TOKEN_DOCUMENTATION_REGISTRY[clean]) {
     return TOKEN_DOCUMENTATION_REGISTRY[clean];
   }
 
-  // Case insensitive lookup
   const cleanLower = clean.toLowerCase();
   for (const [key, doc] of Object.entries(TOKEN_DOCUMENTATION_REGISTRY)) {
     if (key.toLowerCase() === cleanLower) {
@@ -345,14 +503,12 @@ export function findTokenDocumentation(rawToken: string, languageHint?: string):
     }
   }
 
-  // Substring match for compound properties e.g. "display: grid" or "grid-template-columns"
   for (const [key, doc] of Object.entries(TOKEN_DOCUMENTATION_REGISTRY)) {
     if (clean.includes(key) || key.includes(clean)) {
       return doc;
     }
   }
 
-  // Fallback: Generate dynamic documentation with direct search link to official documentation
   const officialSource = getOfficialDocSourceForLanguage(languageHint);
   const searchUrl = getDocumentationSearchUrl(clean, languageHint);
 
@@ -365,6 +521,8 @@ export function findTokenDocumentation(rawToken: string, languageHint?: string):
     detailedExplanation: `The identifier "${clean}" performs an essential role in this code block. Click the official source link below to view its complete specification, parameters, and syntax rules.`,
     documentationUrl: searchUrl,
     documentationSource: officialSource,
+    syllableBreakdown: generateSyllables(clean),
+    grammarRole: 'Code Identifier / Statement Component',
   };
 }
 
@@ -376,13 +534,13 @@ export function explainCodeLine(lineContent: string, lineNumber: number, languag
   explanation: string;
   primaryToken?: TokenDoc;
   allTokens: TokenDoc[];
+  syllables: LineSyllableToken[];
   externalDocUrl: string;
   docSource: string;
 } {
   const trimmed = lineContent.trim();
   const tokensFound: TokenDoc[] = [];
 
-  // Match known tokens within line
   for (const [key, doc] of Object.entries(TOKEN_DOCUMENTATION_REGISTRY)) {
     if (lineContent.includes(key)) {
       tokensFound.push(doc);
@@ -392,13 +550,13 @@ export function explainCodeLine(lineContent: string, lineNumber: number, languag
   const primaryToken = tokensFound[0] || findTokenDocumentation(trimmed, language);
   const externalDocUrl = primaryToken ? primaryToken.documentationUrl : getDocumentationSearchUrl(trimmed, language);
   const docSource = primaryToken ? primaryToken.documentationSource : getOfficialDocSourceForLanguage(language);
+  const syllables = decomposeLineIntoSyllablesAndTokens(lineContent, language);
 
-  // Derive plain English line summary
   let explanation = `Line ${lineNumber} executes this statement.`;
   if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('#')) {
     explanation = `Code comment explaining the rationale or specifications for upcoming instructions.`;
   } else if (trimmed.includes('switch')) {
-    explanation = `Evaluates the operator and branches directly to matching case conditions for rapid execution.`;
+    explanation = `Evaluates the operator and branches directly to matching case conditions for rapid O(1) execution.`;
   } else if (trimmed.includes('case')) {
     explanation = `Branch target: executes arithmetic operation if the operator matches this symbol.`;
   } else if (trimmed.includes('std::nan') || trimmed.includes('Double.NaN') || trimmed.includes('float("nan")')) {
@@ -422,6 +580,7 @@ export function explainCodeLine(lineContent: string, lineNumber: number, languag
     explanation,
     primaryToken: primaryToken || undefined,
     allTokens: tokensFound,
+    syllables,
     externalDocUrl,
     docSource,
   };
@@ -453,6 +612,5 @@ function getDocumentationSearchUrl(token: string, lang?: string): string {
   if (l.includes('react')) {
     return `https://react.dev/reference/react`;
   }
-  // Default to MDN for JS, CSS, HTML, Web APIs
   return `https://developer.mozilla.org/en-US/search?q=${q}`;
 }

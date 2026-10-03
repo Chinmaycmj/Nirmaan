@@ -17,19 +17,27 @@ import {
   Laptop,
   Check
 } from 'lucide-react';
-import { InterventionLevel } from '@/types/project';
+import { InterventionLevel, Project } from '@/types/project';
+import { LearningCheckpoint, ProjectMilestone } from '@/types/learning';
+import { GithubImportModal } from '@/components/github/GithubImportModal';
 
 interface AntigravityHeroProps {
   onStartProject: (prompt: string, level: InterventionLevel, experience: string, techStack?: string) => void;
+  onImportProject?: (data: {
+    project: Project;
+    checkpoints: LearningCheckpoint[];
+    milestones: ProjectMilestone[];
+  }) => void;
 }
 
-export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject }) => {
+export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject, onImportProject }) => {
   const [prompt, setPrompt] = useState('');
   const [interventionLevel, setInterventionLevel] = useState<InterventionLevel>('guided');
   const [experience, setExperience] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [techStack, setTechStack] = useState<string>('auto');
   const [isPlanning, setIsPlanning] = useState(false);
   const [planningStep, setPlanningStep] = useState(0);
+  const [isGithubModalOpen, setIsGithubModalOpen] = useState(false);
 
   const quickPrompts = [
     {
@@ -178,7 +186,14 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 text-xs text-slate-600">
+        <div className="flex items-center space-x-3 text-xs text-slate-600">
+          <button
+            onClick={() => setIsGithubModalOpen(true)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-amber-100/80 hover:bg-amber-200/90 text-[#92400e] border border-amber-300/80 font-bold transition-all shadow-sm active:scale-95"
+            title="Import public GitHub repository"
+          >
+            <span>🐙 Import GitHub Repo</span>
+          </button>
           <div className="hidden sm:flex items-center space-x-2 bg-white border border-slate-200 shadow-sm px-3 py-1.5 rounded-full text-[11px]">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-slate-700 font-medium">Antigravity Engine Active</span>
@@ -307,6 +322,29 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
           </div>
         </div>
 
+        {/* GitHub High-Scale Import Banner (Beach Sand Luxury Accent) */}
+        <div className="w-full mt-4 p-4 rounded-2xl bg-[#fffdfa] border border-[#ebd7bf] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-[#92400e] shrink-0">
+              <GitBranch className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-extrabold text-xs text-[#1c1917] tracking-tight">
+                Import Any Existing GitHub Project (Scale to 10–100+ Files &amp; 1,000+ Lines)
+              </div>
+              <p className="text-[11px] text-[#78716c]">
+                Ingest any repository URL to break down every file, syntax token, and syllable line-by-line.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsGithubModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-[#0e4d82] hover:bg-[#09355b] text-white text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0"
+          >
+            Import Repository →
+          </button>
+        </div>
+
         {/* Quick Inspiration Templates */}
         <div className="w-full mt-8">
           <div className="flex items-center justify-between mb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider px-1">
@@ -395,6 +433,19 @@ export const AntigravityHero: React.FC<AntigravityHeroProps> = ({ onStartProject
           </div>
         </div>
       )}
+
+      {/* GitHub Repository Importer Modal */}
+      <GithubImportModal
+        isOpen={isGithubModalOpen}
+        onClose={() => setIsGithubModalOpen(false)}
+        onImportComplete={(data) => {
+          if (onImportProject) {
+            onImportProject(data);
+          } else {
+            onStartProject(data.project.name, 'guided', 'beginner', data.project.techStack?.language);
+          }
+        }}
+      />
 
       {/* Footer */}
       <footer className="h-12 border-t border-slate-200/80 px-6 md:px-12 flex items-center justify-between text-xs text-slate-500 z-10 bg-white/70 backdrop-blur-md">

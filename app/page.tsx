@@ -35,9 +35,26 @@ export default function WorkspacePage() {
     setIsWorkspaceActive(true);
   };
 
+  const handleImportProject = (data: {
+    project: Project;
+    checkpoints: LearningCheckpoint[];
+    milestones: ProjectMilestone[];
+  }) => {
+    setLastPrompt(`Imported ${data.project.name}`);
+    setProject(data.project);
+    setCheckpoints(data.checkpoints);
+    setMilestones(data.milestones);
+    setIsWorkspaceActive(true);
+  };
+
   // If workspace is not active yet, show clean Antigravity prompt hero
   if (!isWorkspaceActive) {
-    return <AntigravityHero onStartProject={handleStartProjectFromHero} />;
+    return (
+      <AntigravityHero
+        onStartProject={handleStartProjectFromHero}
+        onImportProject={handleImportProject}
+      />
+    );
   }
 
   // Vercel / v0 style full-bleed workspace: prompt stream on left, big live preview on right
