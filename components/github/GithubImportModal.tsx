@@ -57,16 +57,16 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#fffdfa] border border-[#e4dcd0] rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl relative overflow-hidden text-[#1c1917] flex flex-col">
-        {/* Subtle Beach Sand Decorative Glow */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-amber-200/40 via-amber-100/20 to-transparent blur-3xl pointer-events-none rounded-full" />
-        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-gradient-to-tr from-orange-100/50 to-transparent blur-3xl pointer-events-none rounded-full" />
+    <div className="fixed inset-0 z-50 bg-[#1c1917]/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-[#FFF1E7] border border-[#ebdcd0] rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl relative overflow-hidden text-[#1c1917] flex flex-col">
+        {/* Subtle Decorative Glow */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-[#B5D2E6]/30 via-amber-100/20 to-transparent blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-gradient-to-tr from-[#805232]/10 to-transparent blur-3xl pointer-events-none rounded-full" />
 
         {/* Modal Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-[#ebd7bf]">
+        <div className="flex items-start justify-between pb-4 border-b border-[#ebdcd0]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100/90 border border-amber-300/70 text-[#92400e] flex items-center justify-center shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-[#805232]/10 border border-[#805232]/30 text-[#805232] flex items-center justify-center shadow-sm">
               <FolderGit2 className="w-5 h-5" />
             </div>
             <div>
@@ -80,7 +80,7 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f5efe6] transition-colors"
+            className="p-1.5 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f6e7db] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -93,7 +93,7 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
             <label className="text-xs font-bold text-[#44403c] uppercase tracking-wider font-mono">
               Public GitHub Repository Link or "owner/repo"
             </label>
-            <div className="relative rounded-2xl border border-[#ded5c5] bg-[#faf7f2] focus-within:border-[#0e4d82] focus-within:ring-2 focus-within:ring-amber-200 transition-all p-3">
+            <div className="relative rounded-2xl border border-[#ebdcd0] bg-white focus-within:border-[#326080] focus-within:ring-2 focus-within:ring-[#B5D2E6]/50 transition-all p-3">
               <input
                 type="text"
                 value={repoUrl}
@@ -111,7 +111,7 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
           {/* Branch input */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-[#44403c] uppercase tracking-wider font-mono flex items-center gap-1.5">
-              <GitBranch className="w-3.5 h-3.5 text-[#0e4d82]" />
+              <GitBranch className="w-3.5 h-3.5 text-[#326080]" />
               <span>Target Branch</span>
             </label>
             <input
@@ -119,7 +119,7 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
               placeholder="main"
-              className="w-full rounded-xl border border-[#ded5c5] bg-[#faf7f2] p-2.5 text-xs text-[#1c1917] outline-none font-mono focus:border-[#0e4d82]"
+              className="w-full rounded-xl border border-[#ebdcd0] bg-white p-2.5 text-xs text-[#1c1917] outline-none font-mono focus:border-[#326080]"
               disabled={isImporting}
             />
           </div>
@@ -139,7 +139,7 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
                   onClick={() => {
                     setRepoUrl(sample);
                   }}
-                  className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#faf7f2] hover:bg-amber-100/80 text-[#57534e] hover:text-[#92400e] border border-[#ded5c5] transition-colors"
+                  className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-white/80 hover:bg-[#f6e7db] text-[#57534e] hover:text-[#1c1917] border border-[#ebdcd0] transition-colors"
                 >
                   {sample}
                 </button>
@@ -160,7 +160,7 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
             <button
               onClick={() => handleImport()}
               disabled={!repoUrl.trim() || isImporting}
-              className="w-full py-3.5 bg-[#0e4d82] hover:bg-[#09355b] text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-[0.99] disabled:opacity-40 flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-[#326080] hover:bg-[#254b66] text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-[0.99] disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {isImporting ? (
                 <>
@@ -178,14 +178,14 @@ export const GithubImportModal: React.FC<GithubImportModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="pt-3 border-t border-[#ebd7bf] flex items-center justify-between text-xs text-[#78716c]">
+        <div className="pt-3 border-t border-[#ebdcd0] flex items-center justify-between text-xs text-[#78716c]">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <Sparkles className="w-3.5 h-3.5 text-[#326080]" />
             <span>Downloads genuine code files and analyzes AST syntax line-by-line</span>
           </div>
           <button
             onClick={onClose}
-            className="px-3 py-1 rounded-lg hover:bg-[#f5efe6] text-[#78716c] hover:text-[#1c1917] font-medium"
+            className="px-3 py-1 rounded-lg hover:bg-[#f6e7db] text-[#78716c] hover:text-[#1c1917] font-medium"
           >
             Cancel
           </button>

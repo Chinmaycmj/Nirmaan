@@ -158,10 +158,10 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   const highlightToken = (token: string) => {
     const t = token.trim();
     if (['switch', 'case', 'return', 'def', 'if', 'else', 'const', 'let', 'public', 'static', 'class'].includes(t)) {
-      return isSand ? 'text-[#0e4d82] font-bold' : 'text-blue-400 font-bold';
+      return isSand ? 'text-[#326080] font-bold' : 'text-blue-400 font-bold';
     }
     if (['double', 'char', 'int', 'float', 'void', 'boolean', 'str', 'Field'].includes(t)) {
-      return isSand ? 'text-[#92400e] font-bold' : 'text-amber-400 font-bold';
+      return isSand ? 'text-[#805232] font-bold' : 'text-amber-400 font-bold';
     }
     if (t.startsWith('"') || t.startsWith("'") || /^[0-9]+(\.[0-9]+)?$/.test(t)) {
       return isSand ? 'text-[#15803d]' : 'text-emerald-400';
@@ -175,29 +175,29 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   return (
     <div className={`flex flex-col rounded-2xl border overflow-hidden shadow-xl relative select-text transition-colors duration-200 ${
       isSand 
-        ? 'bg-[#fffdfa] border-[#e8dec8] text-[#1c1917]' 
+        ? 'bg-white border-[#ebdcd0] text-[#1c1917]' 
         : 'bg-[#08090d] border-zinc-800 text-[#f4f4f5]'
     }`}>
       {/* Top Header Bar */}
       <div className={`h-11 px-4 border-b flex items-center justify-between select-none ${
-        isSand ? 'bg-[#fcf8f1] border-[#ebd7bf]' : 'bg-zinc-900/90 border-zinc-800'
+        isSand ? 'bg-white/80 border-[#ebdcd0]' : 'bg-zinc-900/90 border-zinc-800'
       }`}>
         <div className="flex items-center gap-2">
           <div className={`flex items-center gap-1.5 text-xs font-mono font-bold ${
-            isSand ? 'text-[#0e4d82]' : 'text-zinc-200'
+            isSand ? 'text-[#326080]' : 'text-zinc-200'
           }`}>
             <BookOpen className="w-3.5 h-3.5" />
             <span>{title} ({language})</span>
           </div>
 
           {/* Mode Switcher Tabs: AI Deep Analysis vs Official Syntax Specs */}
-          <div className="flex items-center p-0.5 rounded-lg bg-[#f0e8dc] border border-[#ded5c5] text-[11px] font-medium ml-2 shadow-inner">
+          <div className="flex items-center p-0.5 rounded-lg bg-[#f6e7db] border border-[#ebdcd0] text-[11px] font-medium ml-2 shadow-inner">
             <button
               type="button"
               onClick={() => setExplanationMode('ai_analysis')}
               className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
                 explanationMode === 'ai_analysis'
-                  ? 'bg-[#0e4d82] text-white shadow-sm'
+                  ? 'bg-[#326080] text-white shadow-sm'
                   : 'text-[#78716c] hover:text-[#1c1917]'
               }`}
               title="Powerful AI Code Explanation & Token Context"
@@ -210,7 +210,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               onClick={() => setExplanationMode('official_syntax')}
               className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
                 explanationMode === 'official_syntax'
-                  ? 'bg-[#0e4d82] text-white shadow-sm'
+                  ? 'bg-[#326080] text-white shadow-sm'
                   : 'text-[#78716c] hover:text-[#1c1917]'
               }`}
               title="Official Language Specs, Syllables & Phonetics"
@@ -227,7 +227,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
             onClick={onCopyOrInsert}
             className={`text-[11px] px-3 py-1 rounded-lg border font-mono font-semibold transition-all shadow-sm active:scale-95 ${
               isSand 
-                ? 'bg-[#0e4d82] hover:bg-[#09355b] text-white border-[#09355b]' 
+                ? 'bg-[#326080] hover:bg-[#254b66] text-white border-[#254b66]' 
                 : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
             }`}
             title="Load reference into workspace"
@@ -254,14 +254,14 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               className={`group flex items-start py-0.5 px-2.5 rounded-lg transition-all relative cursor-pointer ${
                 isSelected
                   ? isSand
-                    ? 'bg-[#f3ebe0] ring-1 ring-[#0e4d82]/40 shadow-sm'
+                    ? 'bg-[#f6e7db] ring-1 ring-[#326080]/40 shadow-sm'
                     : 'bg-zinc-800/80 ring-1 ring-zinc-700'
                   : isHovered
                     ? isSand
-                      ? 'bg-[#f7efe3]'
+                      ? 'bg-[#fcf2ea]'
                       : 'bg-zinc-800/50'
                     : isSand
-                      ? 'hover:bg-[#f9f3e9]'
+                      ? 'hover:bg-[#fffbf7]'
                       : 'hover:bg-zinc-900/40'
               }`}
             >
@@ -269,7 +269,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               <span className={`w-8 shrink-0 text-right pr-3 select-none text-[11px] font-mono ${
                 isSelected
                   ? isSand
-                    ? 'text-[#0e4d82] font-black'
+                    ? 'text-[#326080] font-black'
                     : 'text-white font-bold'
                   : isSand
                     ? 'text-[#a89f91]'
@@ -287,7 +287,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               {isSelected && (
                 <div className="absolute right-2 top-0.5 bottom-0.5 flex items-center gap-1.5 select-none animate-fadeIn">
                   <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                    isSand ? 'bg-[#ffffff] text-[#0e4d82] border-[#ded5c5]' : 'bg-zinc-800 text-zinc-300 border-zinc-700'
+                    isSand ? 'bg-white text-[#326080] border-[#ebdcd0]' : 'bg-zinc-800 text-zinc-300 border-zinc-700'
                   }`}>
                     Line {lineNum} Inspected
                   </span>
@@ -302,7 +302,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
       {/* DUAL EXPLANATION PANEL: AI DEEP ANALYSIS vs OFFICIAL SYNTAX SPECS         */}
       {/* ========================================================================= */}
       <div className={`border-t p-4 text-xs transition-colors duration-200 ${
-        isSand ? 'bg-[#fffdfa] border-[#ebd7bf]' : 'bg-[#090a0f] border-zinc-800'
+        isSand ? 'bg-white border-[#ebdcd0]' : 'bg-[#090a0f] border-zinc-800'
       }`}>
         {explanationMode === 'ai_analysis' ? (
           /* =================================================================== */
@@ -310,13 +310,13 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
           /* =================================================================== */
           <div className="space-y-3.5 animate-fadeIn">
             {/* Header: AI Status & Line Summary */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#ebd7bf]">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#ebdcd0]">
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#0e4d82] to-amber-600 text-white font-mono text-[10px] font-bold shadow-sm">
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#326080] to-[#805232] text-white font-mono text-[10px] font-bold shadow-sm">
                   <Bot className="w-3 h-3" />
                   <span>AI Analysis</span>
                 </span>
-                <span className="font-mono text-xs font-bold text-[#0e4d82]">
+                <span className="font-mono text-xs font-bold text-[#326080]">
                   Line {selectedLineIndex + 1}:
                 </span>
                 <span className="font-semibold text-xs text-[#1c1917]">
@@ -356,11 +356,11 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                   {aiAnalysis.tokens.map((tok, tIdx) => (
                     <div
                       key={tIdx}
-                      className="p-2.5 rounded-xl border border-[#ded5c5] bg-[#faf7f2] flex flex-col justify-between"
+                      className="p-2.5 rounded-xl border border-[#ebdcd0] bg-white flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-mono font-bold text-xs text-[#0e4d82]">
+                          <span className="font-mono font-bold text-xs text-[#326080]">
                             {tok.token}
                           </span>
                           <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-100/90 text-[#92400e] border border-amber-300/60">
@@ -372,12 +372,12 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                         </p>
                       </div>
                       {tok.docUrl && (
-                        <div className="mt-2 pt-1 border-t border-[#ebd7bf]/60 flex justify-end">
+                        <div className="mt-2 pt-1 border-t border-[#ebdcd0]/60 flex justify-end">
                           <a
                             href={tok.docUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-mono text-[#0e4d82] hover:underline"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono text-[#326080] hover:underline"
                           >
                             <span>{tok.docSource || 'Documentation'}</span>
                             <ExternalLink className="w-2.5 h-2.5" />
@@ -391,10 +391,10 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
             )}
 
             {/* Interactive "Ask AI About This Line" */}
-            <div className="pt-2 border-t border-[#ebd7bf] space-y-2">
+            <div className="pt-2 border-t border-[#ebdcd0] space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono uppercase font-bold text-[#78716c] flex items-center gap-1">
-                  <MessageSquare className="w-3 h-3 text-[#0e4d82]" />
+                  <MessageSquare className="w-3 h-3 text-[#326080]" />
                   <span>Ask AI Co-Developer About Line {selectedLineIndex + 1}</span>
                 </span>
               </div>
@@ -407,7 +407,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                       key={qIdx}
                       type="button"
                       onClick={() => handleAskAI(q)}
-                      className="text-[10px] font-sans px-2.5 py-1 rounded-lg bg-[#faf7f2] hover:bg-amber-100 text-[#44403c] hover:text-[#92400e] border border-[#ded5c5] transition-colors"
+                      className="text-[10px] font-sans px-2.5 py-1 rounded-lg bg-white/80 hover:bg-[#f6e7db] text-[#44403c] hover:text-[#1c1917] border border-[#ebdcd0] transition-colors"
                     >
                       {q}
                     </button>
@@ -416,7 +416,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               )}
 
               {/* Inline Ask AI Input */}
-              <div className="relative rounded-xl border border-[#ded5c5] bg-[#ffffff] p-1.5 focus-within:border-[#0e4d82] transition-colors">
+              <div className="relative rounded-xl border border-[#ebdcd0] bg-white p-1.5 focus-within:border-[#326080] transition-colors">
                 <input
                   type="text"
                   value={inlineQuestion}
@@ -432,7 +432,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                   type="button"
                   onClick={() => handleAskAI()}
                   disabled={!inlineQuestion.trim() || isAskingAI}
-                  className="absolute right-2 top-2 p-1 rounded-lg bg-[#0e4d82] text-white hover:bg-[#09355b] disabled:opacity-30 transition-colors shadow-sm"
+                  className="absolute right-2 top-2 p-1 rounded-lg bg-[#326080] text-white hover:bg-[#254b66] disabled:opacity-30 transition-colors shadow-sm"
                 >
                   <ArrowUp className="w-3.5 h-3.5" />
                 </button>
@@ -441,7 +441,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
               {/* Inline AI Answer Display */}
               {inlineAnswer && (
                 <div className="p-3 rounded-xl bg-[#faf6ee] border border-amber-300 text-xs text-[#1c1917] space-y-1 animate-fadeIn">
-                  <div className="flex items-center gap-1.5 font-bold text-[#0e4d82]">
+                  <div className="flex items-center gap-1.5 font-bold text-[#326080]">
                     <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                     <span>AI Co-Developer Response:</span>
                   </div>
@@ -458,7 +458,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
           /* =================================================================== */
           <div className="space-y-3 animate-fadeIn">
             {/* 1. Line Overview & Verified Official Documentation Link */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#ebd7bf]">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#ebdcd0]">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border bg-amber-100 text-[#92400e] border-amber-300">
                   Line {activeLineExplanation?.lineNumber || selectedLineIndex + 1}
@@ -473,7 +473,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                   href={activeLineExplanation.externalDocUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#0e4d82] hover:text-[#09355b] underline decoration-[#0e4d82]/60 transition-colors shrink-0"
+                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#326080] hover:text-[#254b66] underline decoration-[#326080]/60 transition-colors shrink-0"
                   title={`View original specification on ${activeLineExplanation.docSource}`}
                 >
                   <span>Official Docs: {activeLineExplanation.docSource}</span>
@@ -502,7 +502,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-medium transition-all shadow-sm ${
                           isTokenActive
                             ? 'bg-amber-100/90 border-amber-400 text-[#92400e] ring-2 ring-amber-300/60 font-bold scale-[1.03]'
-                            : 'bg-[#faf6ee] hover:bg-[#f4ecdf] text-[#292524] border-[#ded5c5]'
+                            : 'bg-white hover:bg-[#f6e7db] text-[#292524] border-[#ebdcd0]'
                         }`}
                         title={`Deconstruct ${syl.text} (${syl.grammarRole})`}
                       >
@@ -521,10 +521,10 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
 
             {/* 3. Focused Token Card */}
             {selectedSyllableToken && (
-              <div className="p-3 rounded-xl border border-[#ebd7bf] bg-[#fcf9f2] text-[#1c1917] space-y-2 animate-fadeIn">
+              <div className="p-3 rounded-xl border border-[#ebdcd0] bg-white text-[#1c1917] space-y-2 animate-fadeIn">
                 <div className="flex items-start justify-between">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-0.5 rounded font-mono text-xs font-bold border bg-[#ffffff] text-[#0e4d82] border-[#ded5c5]">
+                    <span className="px-2 py-0.5 rounded font-mono text-xs font-bold border bg-white text-[#326080] border-[#ebdcd0]">
                       {selectedSyllableToken.text}
                     </span>
                     {selectedSyllableToken.syllables && (
@@ -532,7 +532,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                         Syllables: <strong>{selectedSyllableToken.syllables}</strong> {selectedSyllableToken.phonetic}
                       </span>
                     )}
-                    <span className="text-[11px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border bg-[#ede5d8] text-[#57534e] border-[#ded5c5]">
+                    <span className="text-[11px] font-mono uppercase tracking-wide px-2 py-0.5 rounded border bg-[#f6e7db] text-[#57534e] border-[#ebdcd0]">
                       {selectedSyllableToken.grammarRole}
                     </span>
                   </div>
@@ -541,7 +541,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
                     href={selectedSyllableToken.docUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-[11px] bg-[#0e4d82] hover:bg-[#09355b] text-white shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-[11px] bg-[#326080] hover:bg-[#254b66] text-white shadow-sm"
                   >
                     <span>Original Source: {selectedSyllableToken.docSource}</span>
                     <ExternalLink className="w-3 h-3" />

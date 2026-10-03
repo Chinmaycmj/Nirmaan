@@ -366,7 +366,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
   const totalRepoLines = project.files.reduce((acc, f) => acc + (f.content ? f.content.split('\n').length : 0), 0);
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#f7f4ee] text-[#1c1917] overflow-hidden font-sans select-none antialiased relative selection:bg-[#0e4d82] selection:text-white">
+    <div className="flex flex-col h-screen w-screen bg-[#FFF1E7] text-[#1c1917] overflow-hidden font-sans select-none antialiased relative selection:bg-[#326080] selection:text-white">
       {/* Background Beach Sand Micro-Dot Canvas */}
       <div 
         className="absolute inset-0 pointer-events-none opacity-40 z-0" 
@@ -379,11 +379,11 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       {/* ========================================================================= */}
       {/* TOP GLOBAL BAR: Project Info, Mode Switcher, GitHub Import, Preview       */}
       {/* ========================================================================= */}
-      <header className="h-14 px-4 md:px-6 border-b border-[#ebd7bf] bg-[#fffdfa]/95 backdrop-blur-md flex items-center justify-between shrink-0 z-20 shadow-sm">
+      <header className="h-14 px-4 md:px-6 border-b border-[#ebdcd0] bg-[#FFF1E7]/95 backdrop-blur-md flex items-center justify-between shrink-0 z-20 shadow-sm">
         <div className="flex items-center gap-3">
           <button 
             onClick={onReturnToLanding}
-            className="p-1.5 rounded-xl hover:bg-[#f3ebde] text-[#78716c] hover:text-[#1c1917] transition-colors"
+            className="p-1.5 rounded-xl hover:bg-[#f6e7db] text-[#78716c] hover:text-[#1c1917] transition-colors"
             title="Return to Projects"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -391,18 +391,18 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-sm tracking-tight text-[#1c1917]">{project.name}</span>
-            <span className="text-[10px] font-mono uppercase bg-[#f5efe6] text-[#78350f] font-bold px-2.5 py-0.5 rounded-full border border-[#ebd7bf]">
+            <span className="text-[10px] font-mono uppercase bg-[#B5D2E6]/30 text-[#326080] font-bold px-2.5 py-0.5 rounded-full border border-[#B5D2E6]/60">
               {getTargetLanguage()}
             </span>
           </div>
 
           {/* Mode Switcher: Playground vs File IDE */}
-          <div className="hidden sm:flex items-center p-0.5 rounded-xl bg-[#faf7f2] border border-[#ded5c5] text-xs ml-2 shadow-inner">
+          <div className="hidden sm:flex items-center p-0.5 rounded-xl bg-white/70 border border-[#ebdcd0] text-xs ml-2 shadow-inner">
             <button
               onClick={() => setWorkspaceMode('playground')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all font-semibold ${
                 workspaceMode === 'playground'
-                  ? 'bg-[#0e4d82] text-white shadow-sm'
+                  ? 'bg-[#326080] text-white shadow-sm'
                   : 'text-[#78716c] hover:text-[#1c1917]'
               }`}
             >
@@ -413,7 +413,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
               onClick={() => setWorkspaceMode('files')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all font-semibold ${
                 workspaceMode === 'files'
-                  ? 'bg-[#0e4d82] text-white shadow-sm'
+                  ? 'bg-[#326080] text-white shadow-sm'
                   : 'text-[#78716c] hover:text-[#1c1917]'
               }`}
             >
@@ -425,10 +425,10 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           {/* Multi-File Repository Scale Pill */}
           <button
             onClick={() => setIsFilesDrawerOpen(!isFilesDrawerOpen)}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#fffdfa] hover:bg-[#f3ebde] border border-[#ebd7bf] text-[11px] font-mono text-[#57534e] hover:text-[#1c1917] transition-colors shadow-sm"
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/90 hover:bg-[#f6e7db] border border-[#ebdcd0] text-[11px] font-mono text-[#57534e] hover:text-[#1c1917] transition-colors shadow-sm"
             title="Browse all repository files"
           >
-            <Folder className="w-3.5 h-3.5 text-[#0e4d82]" />
+            <Folder className="w-3.5 h-3.5 text-[#326080]" />
             <span className="font-bold">{project.files.length} Files</span>
             <span className="text-[#a8a29e]">•</span>
             <span>{totalRepoLines} Lines</span>
@@ -449,7 +449,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
           {/* Ownership Pill */}
           <div 
-            className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fffdfa] border border-[#ebd7bf] text-xs font-mono shadow-sm"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#ebdcd0] text-xs font-mono shadow-sm"
             title="Code Ownership: Human vs AI"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -463,8 +463,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
             onClick={() => setIsTutorDrawerOpen(!isTutorDrawerOpen)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
               isTutorDrawerOpen 
-                ? 'bg-[#0e4d82] border-[#0e4d82] text-white shadow-sm' 
-                : 'bg-[#fffdfa] hover:bg-[#f3ebde] border-[#ebd7bf] text-[#44403c] hover:text-[#1c1917]'
+                ? 'bg-[#326080] border-[#326080] text-white shadow-sm' 
+                : 'bg-white/90 hover:bg-[#f6e7db] border-[#ebdcd0] text-[#44403c] hover:text-[#1c1917]'
             }`}
             title="Toggle AI Co-Developer Chat Drawer"
           >
@@ -481,7 +481,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                 setIsExplanationOpen(true);
               }
             }}
-            className="p-2 rounded-xl hover:bg-[#f3ebde] text-[#78716c] hover:text-[#1c1917] transition-colors"
+            className="p-2 rounded-xl hover:bg-[#f6e7db] text-[#78716c] hover:text-[#1c1917] transition-colors"
             title="Deep Concept Explanation"
           >
             <BookOpen className="w-4 h-4" />
@@ -489,7 +489,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
           <button
             onClick={() => setIsKnowledgeGraphOpen(true)}
-            className="p-2 rounded-xl hover:bg-[#f3ebde] text-[#78716c] hover:text-[#1c1917] transition-colors"
+            className="p-2 rounded-xl hover:bg-[#f6e7db] text-[#78716c] hover:text-[#1c1917] transition-colors"
             title="Knowledge Graph & Mastery"
           >
             <Layers className="w-4 h-4" />
@@ -497,7 +497,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
           <button
             onClick={() => setIsTimelineOpen(true)}
-            className="p-2 rounded-xl hover:bg-[#f3ebde] text-[#78716c] hover:text-[#1c1917] transition-colors"
+            className="p-2 rounded-xl hover:bg-[#f6e7db] text-[#78716c] hover:text-[#1c1917] transition-colors"
             title="Project Roadmap & Milestones"
           >
             <CheckCheck className="w-4 h-4" />
@@ -505,7 +505,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2 rounded-xl hover:bg-[#f3ebde] text-[#78716c] hover:text-[#1c1917] transition-colors"
+            className="p-2 rounded-xl hover:bg-[#f6e7db] text-[#78716c] hover:text-[#1c1917] transition-colors"
             title="AI & Environment Settings"
           >
             <Settings className="w-4 h-4" />
@@ -516,8 +516,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
             onClick={() => setIsPreviewOpen(!isPreviewOpen)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ml-1 ${
               isPreviewOpen
-                ? 'bg-[#ffffff] text-[#0e4d82] border-[#ebd7bf] hover:bg-[#f8f4ec]'
-                : 'bg-[#0e4d82] text-white border-[#0e4d82] shadow-md shadow-blue-900/20'
+                ? 'bg-white text-[#326080] border-[#ebdcd0] hover:bg-[#f6e7db]'
+                : 'bg-[#326080] text-white border-[#326080] shadow-md shadow-[#326080]/20'
             }`}
             title={isPreviewOpen ? "Minimize Preview Window" : "Open Companion Preview Window"}
           >
@@ -531,10 +531,10 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       {/* REPOSITORY MULTI-FILE DRAWER (HIGH-SCALE 10-100+ FILES EXPLORER)          */}
       {/* ========================================================================= */}
       {isFilesDrawerOpen && (
-        <div className="bg-[#fffdfa] border-b border-[#ebd7bf] p-4 z-20 shadow-md animate-fadeIn">
+        <div className="bg-[#FFF1E7] border-b border-[#ebdcd0] p-4 z-20 shadow-md animate-fadeIn">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <FolderGit2 className="w-4 h-4 text-[#0e4d82]" />
+              <FolderGit2 className="w-4 h-4 text-[#326080]" />
               <span className="font-extrabold text-xs uppercase tracking-wider text-[#1c1917] font-mono">
                 Repository File Matrix ({project.files.length} Files • {totalRepoLines} Lines)
               </span>
@@ -544,7 +544,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
             </div>
             <button
               onClick={() => setIsFilesDrawerOpen(false)}
-              className="p-1 rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f3ebde]"
+              className="p-1 rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f6e7db]"
             >
               <X className="w-4 h-4" />
             </button>
@@ -565,7 +565,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                   className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
                     isActive 
                       ? 'bg-amber-50/90 border-amber-400/90 shadow-sm ring-1 ring-amber-300' 
-                      : 'bg-[#faf7f2] hover:bg-[#f3ebde] border-[#ded5c5]'
+                      : 'bg-white/80 hover:bg-[#f6e7db] border-[#ebdcd0]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -573,7 +573,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                       {file.name}
                     </span>
                     {isTarget && (
-                      <span className="text-[9px] font-mono px-1 rounded bg-[#0e4d82] text-white">
+                      <span className="text-[9px] font-mono px-1 rounded bg-[#326080] text-white">
                         TARGET
                       </span>
                     )}
@@ -595,9 +595,9 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       <div className="flex flex-1 overflow-hidden relative">
 
         {/* ----------------------------------------------------------------------- */}
-        {/* PANE 1: THE LARGE CODING PLAYGROUND & EXPLANATION STUDIO (BEACH SAND)   */}
+        {/* PANE 1: THE LARGE CODING PLAYGROUND & EXPLANATION STUDIO (MARINA PEACH) */}
         {/* ----------------------------------------------------------------------- */}
-        <div className="flex-1 flex flex-col h-full bg-[#f7f4ee] overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 space-y-6">
+        <div className="flex-1 flex flex-col h-full bg-[#FFF1E7] overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 space-y-6">
           
           {workspaceMode === 'playground' ? (
             /* ================= PLAYGROUND MODE (DEFAULT) ================= */
@@ -605,7 +605,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
               {activeCheckpoint ? (
                 <>
                   {/* 1. Header Card: Concept & Step Objectives */}
-                  <div className="rounded-2xl border border-[#ebd7bf] bg-[#ffffff] p-5 shadow-sm relative overflow-hidden">
+                  <div className="rounded-2xl border border-[#ebdcd0] bg-white p-5 shadow-sm relative overflow-hidden">
                     <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                       <div className="flex items-center gap-2.5">
                         <span className="text-xs font-mono uppercase tracking-wider text-[#92400e] font-extrabold bg-amber-100/90 border border-amber-300/80 px-3 py-1 rounded-full">
@@ -618,9 +618,9 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
                       <div className="flex items-center gap-2">
                         {activeCheckpoint.targetFileId && (
-                          <div className="flex items-center gap-1.5 text-xs font-mono bg-[#faf7f2] px-3 py-1 rounded-xl border border-[#ebd7bf]">
+                          <div className="flex items-center gap-1.5 text-xs font-mono bg-white/80 px-3 py-1 rounded-xl border border-[#ebdcd0]">
                             <span className="text-[#78716c]">Target File:</span>
-                            <span className="text-[#0e4d82] font-bold">
+                            <span className="text-[#326080] font-bold">
                               {project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || 'app.js'}
                             </span>
                           </div>
@@ -631,7 +631,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                             setActiveExplanation(exp);
                             setIsExplanationOpen(true);
                           }}
-                          className="text-xs text-[#0e4d82] hover:text-[#09355b] flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#fffdfa] hover:bg-[#f3ebde] border border-[#ded5c5] transition-colors font-medium shadow-sm"
+                          className="text-xs text-[#326080] hover:text-[#254b66] flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/90 hover:bg-[#f6e7db] border border-[#ebdcd0] transition-colors font-medium shadow-sm"
                         >
                           <BookOpen className="w-3.5 h-3.5" />
                           <span>Explain in Detail</span>
@@ -681,7 +681,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                           )}
                           {activeCheckpoint.contextExplanation && (
                             <div className="text-sm text-[#44403c]">
-                              <span className="text-[#0e4d82] font-bold">Engineering Context: </span>
+                              <span className="text-[#326080] font-bold">Engineering Context: </span>
                               {activeCheckpoint.contextExplanation}
                             </div>
                           )}
@@ -709,7 +709,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : matchStats.percent > 50
                               ? 'bg-amber-100 text-amber-800 border-amber-300'
-                              : 'bg-[#faf7f2] text-[#78716c] border-[#ded5c5]'
+                              : 'bg-white/80 text-[#78716c] border-[#ebdcd0]'
                         }`}>
                           {matchStats.percent}% Reference Aligned ({matchStats.matched}/{matchStats.total} lines)
                         </span>
@@ -728,18 +728,18 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                         />
                       </div>
 
-                      {/* COLUMN 2: SPACIOUS USER WORKSPACE (BEACH SAND / IVORY) */}
-                      <div className="flex flex-col rounded-2xl border border-[#ded5c5] bg-[#ffffff] overflow-hidden focus-within:border-[#0e4d82] focus-within:ring-2 focus-within:ring-amber-200/50 shadow-sm h-full min-h-[440px] transition-all">
-                        <div className="h-10 px-4 bg-[#fcf9f2] border-b border-[#ebd7bf] flex items-center justify-between shrink-0">
+                      {/* COLUMN 2: SPACIOUS USER WORKSPACE (MARINA / IVORY) */}
+                      <div className="flex flex-col rounded-2xl border border-[#ebdcd0] bg-white overflow-hidden focus-within:border-[#326080] focus-within:ring-2 focus-within:ring-[#B5D2E6]/50 shadow-sm h-full min-h-[440px] transition-all">
+                        <div className="h-10 px-4 bg-white/80 border-b border-[#ebdcd0] flex items-center justify-between shrink-0">
                           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1c1917]">
-                            <Code2 className="w-4 h-4 text-[#0e4d82]" />
+                            <Code2 className="w-4 h-4 text-[#326080]" />
                             <span>YOUR IMPLEMENTATION ({getTargetLanguage()})</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => setUserCode(activeCheckpoint.initialCode || '')}
-                              className="text-[11px] text-[#78716c] hover:text-[#1c1917] px-2.5 py-0.5 rounded-lg bg-[#fffdfa] hover:bg-[#f3ebde] border border-[#ded5c5] transition-colors font-mono"
+                              className="text-[11px] text-[#78716c] hover:text-[#1c1917] px-2.5 py-0.5 rounded-lg bg-white/90 hover:bg-[#f6e7db] border border-[#ebdcd0] transition-colors font-mono"
                               title="Reset to template"
                             >
                               Reset
@@ -747,7 +747,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => setUserCode(activeCheckpoint.solutionCode || '')}
-                              className="text-[11px] text-white px-2.5 py-0.5 rounded-lg bg-[#0e4d82] hover:bg-[#09355b] transition-colors font-mono font-medium shadow-sm"
+                              className="text-[11px] text-white px-2.5 py-0.5 rounded-lg bg-[#326080] hover:bg-[#254b66] transition-colors font-mono font-medium shadow-sm"
                               title="Load reference code"
                             >
                               Load Reference
@@ -839,7 +839,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                     <button
                       onClick={handleCheckSubmission}
                       disabled={isSubmitting}
-                      className="py-3 px-8 rounded-xl bg-[#0e4d82] hover:bg-[#09355b] text-white font-bold text-sm active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-900/20 disabled:opacity-50"
+                      className="py-3 px-8 rounded-xl bg-[#326080] hover:bg-[#254b66] text-white font-bold text-sm active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-md shadow-[#326080]/20 disabled:opacity-50"
                     >
                       {isSubmitting ? (
                         <>
@@ -890,8 +890,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           )}
 
           {/* Quick Follow-up Question Input at Bottom of Playground */}
-          <div className="pt-4 border-t border-[#ebd7bf]">
-            <div className="relative rounded-2xl border border-[#ded5c5] bg-[#ffffff] p-2 focus-within:border-[#0e4d82] transition-colors shadow-sm">
+          <div className="pt-4 border-t border-[#ebdcd0]">
+            <div className="relative rounded-2xl border border-[#ebdcd0] bg-white p-2 focus-within:border-[#326080] transition-colors shadow-sm">
               <input
                 type="text"
                 value={followupPrompt}
@@ -906,7 +906,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
               <button
                 onClick={handleSendFollowup}
                 disabled={!followupPrompt.trim() || isFollowupLoading}
-                className="absolute right-2.5 top-2.5 p-1 rounded-xl bg-[#0e4d82] text-white hover:bg-[#09355b] disabled:opacity-30 transition-colors shadow-sm"
+                className="absolute right-2.5 top-2.5 p-1 rounded-xl bg-[#326080] text-white hover:bg-[#254b66] disabled:opacity-30 transition-colors shadow-sm"
               >
                 {isFollowupLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -922,27 +922,27 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         {/* PANE 2: COMPANION PREVIEW WINDOW (ASIDE OR SMALL)                       */}
         {/* ----------------------------------------------------------------------- */}
         {isPreviewOpen ? (
-          <div className="w-[380px] xl:w-[430px] shrink-0 border-l border-[#ebd7bf] bg-[#fffdfa] flex flex-col h-full z-10 animate-fadeIn shadow-sm">
+          <div className="w-[380px] xl:w-[430px] shrink-0 border-l border-[#ebdcd0] bg-white/95 flex flex-col h-full z-10 animate-fadeIn shadow-sm">
             {/* Companion Browser Toolbar */}
-            <div className="h-12 px-3 border-b border-[#ebd7bf] flex items-center justify-between shrink-0 bg-[#fcf8f1]">
+            <div className="h-12 px-3 border-b border-[#ebdcd0] flex items-center justify-between shrink-0 bg-white/80">
               <div className="flex items-center gap-1.5 text-xs text-[#1c1917] font-bold">
-                <Eye className="w-3.5 h-3.5 text-[#0e4d82]" />
+                <Eye className="w-3.5 h-3.5 text-[#326080]" />
                 <span>Live Preview Sandbox</span>
               </div>
 
               {/* URL bar & device toggle */}
               <div className="flex items-center gap-1.5">
-                <div className="flex items-center p-0.5 rounded-lg bg-[#ffffff] border border-[#ded5c5]">
+                <div className="flex items-center p-0.5 rounded-lg bg-white border border-[#ebdcd0]">
                   <button
                     onClick={() => setPreviewDevice('desktop')}
-                    className={`p-1 rounded ${previewDevice === 'desktop' ? 'bg-[#0e4d82] text-white' : 'text-[#78716c] hover:text-[#1c1917]'}`}
+                    className={`p-1 rounded ${previewDevice === 'desktop' ? 'bg-[#326080] text-white' : 'text-[#78716c] hover:text-[#1c1917]'}`}
                     title="Desktop Preview"
                   >
                     <Monitor className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => setPreviewDevice('mobile')}
-                    className={`p-1 rounded ${previewDevice === 'mobile' ? 'bg-[#0e4d82] text-white' : 'text-[#78716c] hover:text-[#1c1917]'}`}
+                    className={`p-1 rounded ${previewDevice === 'mobile' ? 'bg-[#326080] text-white' : 'text-[#78716c] hover:text-[#1c1917]'}`}
                     title="Mobile Preview"
                   >
                     <Smartphone className="w-3 h-3" />
@@ -951,7 +951,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
                 <button 
                   onClick={() => setPreviewKey(k => k + 1)}
-                  className="p-1 hover:text-[#1c1917] text-[#78716c] transition-colors rounded hover:bg-[#f3ebde]"
+                  className="p-1 hover:text-[#1c1917] text-[#78716c] transition-colors rounded hover:bg-[#f6e7db]"
                   title="Reload Preview Sandbox"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -959,7 +959,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
                 <button
                   onClick={() => setIsPreviewOpen(false)}
-                  className="p-1 hover:text-[#1c1917] text-[#78716c] transition-colors rounded hover:bg-[#f3ebde] ml-1"
+                  className="p-1 hover:text-[#1c1917] text-[#78716c] transition-colors rounded hover:bg-[#f6e7db] ml-1"
                   title="Minimize Preview Window"
                 >
                   <PanelRightClose className="w-3.5 h-3.5" />
@@ -968,9 +968,9 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
             </div>
 
             {/* Live Preview Container */}
-            <div className="flex-1 relative overflow-hidden bg-[#faf7f2] flex items-center justify-center p-2">
+            <div className="flex-1 relative overflow-hidden bg-white/50 flex items-center justify-center p-2">
               <div className={`w-full h-full rounded-2xl overflow-hidden shadow-lg transition-all ${
-                previewDevice === 'mobile' ? 'max-w-[320px] max-h-[580px] border border-[#ded5c5] rounded-3xl' : ''
+                previewDevice === 'mobile' ? 'max-w-[320px] max-h-[580px] border border-[#ebdcd0] rounded-3xl' : ''
               }`}>
                 <LivePreview
                   key={previewKey}
@@ -982,13 +982,13 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           </div>
         ) : (
           /* Minimized Preview Strip */
-          <div className="w-10 border-l border-[#ebd7bf] bg-[#fffdfa] flex flex-col items-center py-4 shrink-0 select-none">
+          <div className="w-10 border-l border-[#ebdcd0] bg-white/95 flex flex-col items-center py-4 shrink-0 select-none">
             <button
               onClick={() => setIsPreviewOpen(true)}
-              className="p-2 rounded-xl bg-[#f3ebde] hover:bg-amber-200 text-[#0e4d82] shadow-sm transition-colors"
+              className="p-2 rounded-xl bg-[#f6e7db] hover:bg-[#ebdcd0] text-[#326080] shadow-sm transition-colors"
               title="Expand Companion Live Preview"
             >
-              <PanelRightOpen className="w-4 h-4 text-[#0e4d82]" />
+              <PanelRightOpen className="w-4 h-4 text-[#326080]" />
             </button>
             <span 
               onClick={() => setIsPreviewOpen(true)}
@@ -1003,17 +1003,17 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         {/* SLIDE-OVER AI TUTOR DRAWER                                              */}
         {/* ----------------------------------------------------------------------- */}
         {isTutorDrawerOpen && (
-          <div className="absolute right-0 top-0 bottom-0 w-full sm:w-[400px] z-30 bg-[#fffdfa]/95 backdrop-blur-xl border-l border-[#ebd7bf] shadow-2xl flex flex-col animate-slideIn">
-            <div className="h-14 px-4 border-b border-[#ebd7bf] flex items-center justify-between shrink-0 bg-[#fcf8f1]">
+          <div className="absolute right-0 top-0 bottom-0 w-full sm:w-[400px] z-30 bg-[#FFF1E7]/95 backdrop-blur-xl border-l border-[#ebdcd0] shadow-2xl flex flex-col animate-slideIn">
+            <div className="h-14 px-4 border-b border-[#ebdcd0] flex items-center justify-between shrink-0 bg-white/70">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#0e4d82] to-amber-500 flex items-center justify-center shadow-sm">
+                <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#326080] to-[#487a9e] flex items-center justify-center shadow-sm">
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="font-extrabold text-sm text-[#1c1917]">AI Co-Developer Tutor</span>
               </div>
               <button
                 onClick={() => setIsTutorDrawerOpen(false)}
-                className="p-1 rounded-lg hover:bg-[#f3ebde] text-[#78716c] hover:text-[#1c1917]"
+                className="p-1 rounded-lg hover:bg-[#f6e7db] text-[#78716c] hover:text-[#1c1917]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1028,8 +1028,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                   <div 
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-sm ${
                       msg.role === 'user'
-                        ? 'bg-[#0e4d82] text-white'
-                        : 'bg-[#faf6ee] text-[#1c1917] border border-[#ebd7bf]'
+                        ? 'bg-[#326080] text-white'
+                        : 'bg-[#faf6ee] text-[#1c1917] border border-[#ebdcd0]'
                     }`}
                   >
                     {msg.text}
@@ -1038,8 +1038,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
               ))}
             </div>
 
-            <div className="p-3 border-t border-[#ebd7bf] bg-[#fcf8f1]">
-              <div className="relative rounded-xl border border-[#ded5c5] bg-[#ffffff] p-2 focus-within:border-[#0e4d82]">
+            <div className="p-3 border-t border-[#ebdcd0] bg-white/70">
+              <div className="relative rounded-xl border border-[#ebdcd0] bg-white p-2 focus-within:border-[#326080]">
                 <input
                   type="text"
                   value={followupPrompt}
@@ -1053,7 +1053,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                 <button
                   onClick={handleSendFollowup}
                   disabled={!followupPrompt.trim() || isFollowupLoading}
-                  className="absolute right-2 top-2 p-1 rounded-lg bg-[#0e4d82] text-white hover:bg-[#09355b] disabled:opacity-30 shadow-sm"
+                  className="absolute right-2 top-2 p-1 rounded-lg bg-[#326080] text-white hover:bg-[#254b66] disabled:opacity-30 shadow-sm"
                 >
                   <ArrowUp className="w-3.5 h-3.5" />
                 </button>
