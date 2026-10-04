@@ -7,6 +7,7 @@ import { AISettings, ConceptExplanation, ValidationEvaluation } from '@/types/ai
 import { aiService } from '@/lib/ai/provider';
 import { calculateProjectOwnership } from '@/lib/learning/ownershipTracker';
 import { validateCheckpointSubmission } from '@/lib/learning/validator';
+import { generateFileChallengeScaffold, FileChallengeScaffold } from '@/lib/learning/codeScaffolder';
 import { InteractiveTokenCodeViewer } from '@/components/learning/InteractiveTokenCodeViewer';
 import { GithubImportModal } from '@/components/github/GithubImportModal';
 
@@ -81,9 +82,10 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
   // Workspace Mode: 'playground' (spacious learning studio) vs 'files' (monaco file tree)
   const [workspaceMode, setWorkspaceMode] = useState<'playground' | 'files'>('playground');
 
-  // Multi-File Project Drawer
+  // Multi-File Project Drawer & Dynamic 10-20% Challenge Scaffold
   const [isFilesDrawerOpen, setIsFilesDrawerOpen] = useState<boolean>(false);
   const [isGithubModalOpen, setIsGithubModalOpen] = useState<boolean>(false);
+  const [activeFileChallenge, setActiveFileChallenge] = useState<FileChallengeScaffold | null>(null);
 
   // Companion Preview controls (default to false so coding studio takes 100% full width)
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
@@ -223,7 +225,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
   // 100% Real Code Match Analysis
   const getMatchStats = () => {
-    const reference = activeCheckpoint?.solutionCode || activeCheckpoint?.initialCode || '';
+    const reference = activeFileChallenge?.fullReferenceCode || activeCheckpoint?.solutionCode || activeCheckpoint?.initialCode || '';
     if (!reference.trim()) return { matched: 0, total: 0, percent: 100 };
 
     const refLines = reference.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('#') && !l.startsWith('/*'));
@@ -377,7 +379,13 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       const resp = await aiService.generateChatResponse(
         promptText,
         `Project: ${project.name}. Current concept: ${activeCheckpoint?.conceptName || 'Software Architecture'}.`,
-        aiSettings
+        aiSettings,
+        {
+          projectFiles: project.files,
+          activeFile: activeFile || undefined,
+          techStack: project.techStack,
+          projectName: project.name,
+        }
       );
       setChatMessages(prev => [...prev, { role: 'assistant', text: resp.text }]);
     } catch {
@@ -390,6 +398,43 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       ]);
     } finally {
       setIsFollowupLoading(false);
+    }
+  };
+
+  const handleSelectRepositoryFile = (file: ProjectFile) => {
+    setProject(prev => ({ ...prev, activeFileId: file.id }));
+
+    if (file.content) {
+      const scaffold = generateFileChallengeScaffold(file.content, file.name, file.language);
+      setActiveFileChallenge(scaffold);
+      setUserCode(scaffold.scaffoldUserCode);
+
+      // Update active checkpoint so validator & progress align with selected file
+      setCheckpoints(prev => {
+        if (!prev[currentStepIndex]) return prev;
+        return prev.map((ckpt, idx) => {
+          if (idx === currentStepIndex) {
+            return {
+              ...ckpt,
+              targetFileId: file.id,
+              conceptName: `${file.name} Architecture`,
+              title: `Implement ${file.name} (Lines ${scaffold.startLine}–${scaffold.endLine})`,
+              prompt: `In this file (${scaffold.totalLines} lines), approximately ${scaffold.challengePercent}% of the implementation (${scaffold.challengeLineCount} lines, L${scaffold.startLine}–L${scaffold.endLine}) has been scaffolded for your active coding task. Reference the 100% full file on the left and write your implementation in the editor!`,
+              initialCode: scaffold.scaffoldUserCode,
+              solutionCode: scaffold.fullReferenceCode,
+            };
+          }
+          return ckpt;
+        });
+      });
+
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: `📂 **Loaded ${file.name}** (${scaffold.totalLines} lines).\n\n• **Left Column**: 100% of the authentic file is loaded into the Reference Specification viewer with line-by-line syllable decomposition.\n• **Right Column**: A **${scaffold.challengeLineCount}-line challenge** (${scaffold.challengePercent}% of file, Lines ${scaffold.startLine}–${scaffold.endLine}) has been created with surrounding code intact.\n\nType your code or ask any questions about this file!`
+        }
+      ]);
     }
   };
 
@@ -598,9 +643,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
               return (
                 <div
                   key={file.id}
-                  onClick={() => {
-                    setProject(prev => ({ ...prev, activeFileId: file.id }));
-                  }}
+                  onClick={() => handleSelectRepositoryFile(file)}
                   className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
                     isActive 
                       ? 'bg-amber-50/90 border-amber-400/90 shadow-sm ring-1 ring-amber-300' 
@@ -759,13 +802,13 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                       {/* COLUMN 1: REFERENCE CODE & SYLLABLE DECOMPOSER */}
                       <div className="flex flex-col h-full min-h-[440px]">
                         <InteractiveTokenCodeViewer
-                          code={activeCheckpoint.solutionCode || activeCheckpoint.initialCode || ''}
+                          code={activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode || activeCheckpoint.initialCode || activeFile?.content || ''}
                           language={getTargetLanguage()}
-                          onCopyOrInsert={() => setUserCode(activeCheckpoint.solutionCode || activeCheckpoint.initialCode || '')}
-                          title="REFERENCE SPECIFICATION"
+                          onCopyOrInsert={() => setUserCode(activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode || activeCheckpoint.initialCode || '')}
+                          title={`REFERENCE SPECIFICATION (${project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'})`}
                           theme="sand"
                           projectName={project.name}
-                          fileName={project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || 'app.js'}
+                          fileName={project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'}
                         />
                       </div>
 
@@ -777,25 +820,30 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                             <Code2 className="w-4 h-4 text-[#326080]" />
                             <span>YOUR IMPLEMENTATION</span>
                             <span className="text-[11px] font-normal text-[#78716c] font-sans">
-                              • {project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || 'app.js'}
+                              • {project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'}
                             </span>
+                            {activeFileChallenge && (
+                              <span className="text-[10px] font-mono bg-amber-100 text-[#92400e] border border-amber-300 px-2 py-0.5 rounded-full font-bold ml-1">
+                                {activeFileChallenge.challengeLineCount} lines challenge ({activeFileChallenge.challengePercent}%)
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => {
-                                setUserCode(activeCheckpoint.initialCode || '');
+                                setUserCode(activeFileChallenge ? activeFileChallenge.scaffoldUserCode : (activeCheckpoint.initialCode || ''));
                                 updateCursorPosition();
                               }}
                               className="text-[11px] text-[#78716c] hover:text-[#1c1917] px-2.5 py-1 rounded-lg bg-white/90 hover:bg-[#f6e7db] border border-[#ebdcd0] transition-colors font-mono"
-                              title="Reset to template"
+                              title="Reset to challenge scaffold"
                             >
-                              Reset
+                              Reset Scaffold
                             </button>
                             <button
                               type="button"
                               onClick={() => {
-                                setUserCode(activeCheckpoint.solutionCode || '');
+                                setUserCode(activeFileChallenge ? activeFileChallenge.fullReferenceCode : (activeCheckpoint.solutionCode || ''));
                                 updateCursorPosition();
                               }}
                               className="text-[11px] text-white px-2.5 py-1 rounded-lg bg-[#326080] hover:bg-[#254b66] transition-colors font-mono font-medium shadow-sm"
@@ -1175,6 +1223,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         onClose={() => setIsKnowledgeGraphOpen(false)}
         masteredConceptIds={masteredConceptIds}
         activeConceptId={activeCheckpoint?.conceptId || ''}
+        project={project}
+        activeCheckpoint={activeCheckpoint || undefined}
       />
       <ProjectTimelineModal
         isOpen={isTimelineOpen}

@@ -141,50 +141,209 @@ export class AIProviderService {
       },
     };
 
-    return explanations[conceptId] || {
-      concept: 'Programming Concept',
-      language: 'TypeScript / React',
-      syntax: 'Syntax pattern',
-      whatItDoes: 'Encapsulates modular logic in the application.',
-      whyItExists: 'Provides clean separation of concerns and maintainability.',
-      usedBy: 'Project Components',
-      beginnerExplanation: 'This code helps your application organize data and respond to user actions.',
-      intermediateExplanation: 'Follows idiomatic React and TypeScript paradigms for maintainable frontends.',
-      advancedExplanation: 'Optimized for modularity, type inference, and React Fiber render scheduling.',
-      commonPitfalls: ['Unclear variable naming', 'Lack of error boundary protection'],
+    if (explanations[conceptId]) {
+      return explanations[conceptId];
+    }
+
+    // Dynamic, tech-stack-accurate concept generator for imported projects & custom stacks
+    const cLower = conceptId.toLowerCase();
+    const isHtmlCss = cLower.includes('html') || cLower.includes('css') || cLower.includes('dom') || cLower.includes('style');
+    const isPython = cLower.includes('python') || cLower.includes('py');
+    const isCompiled = cLower.includes('cpp') || cLower.includes('c++') || cLower.includes('java');
+
+    if (isHtmlCss) {
+      return {
+        concept: 'HTML5 Semantic Layout & CSS Styling Architecture',
+        language: 'HTML5 / CSS3 / Vanilla JavaScript',
+        syntax: '.nav-btn { display: flex; align-items: center; padding: 0 24px; height: 64px; }',
+        whatItDoes: 'Structures document landmarks and presentation rules for buttons, navigation, and menu card grids.',
+        whyItExists: 'Decouples visual styling from content markup, creating responsive interfaces that adapt smoothly across mobile and desktop viewports.',
+        usedBy: 'HTML & CSS Stylesheets',
+        beginnerExplanation: 'Think of HTML as the skeleton of the building and CSS as the paint, windows, and layout design that makes it visually engaging and comfortable to navigate.',
+        intermediateExplanation: 'Combines CSS Box Model rules (padding, margin, border) with modern Flexbox formatting contexts to achieve fluid, dynamic alignment without layout shifts.',
+        advancedExplanation: 'Leverages CSS custom properties (variables) and hardware-accelerated transforms for optimal browser compositing passes with 60fps scrolling.',
+        commonPitfalls: ['Forgetting to set box-sizing: border-box', 'Hardcoding fixed pixel widths that cause overflow on mobile screens'],
+      };
+    }
+
+    if (isPython) {
+      return {
+        concept: 'Python Computational Routines & Data Contracts',
+        language: 'Python 3',
+        syntax: 'def calculate_total(items: list) -> float:',
+        whatItDoes: 'Encapsulates data transformations and mathematical routines with clean indentation and type hints.',
+        whyItExists: 'Provides clean procedural and object-oriented abstractions that are readable, maintainable, and easily unit-tested.',
+        usedBy: 'Python Modules & Services',
+        beginnerExplanation: 'In Python, code blocks are defined by indentation. Functions take inputs, perform operations, and return the result cleanly.',
+        intermediateExplanation: 'Utilizes list comprehensions and generators for memory-efficient lazy evaluation across collections.',
+        advancedExplanation: 'Python bytecode executes on the CPython evaluation loop with dynamic dispatch and GIL thread synchronization.',
+        commonPitfalls: ['Using mutable default arguments like def fn(x=[])', 'Indentation mismatch errors between tabs and spaces'],
+      };
+    }
+
+    if (isCompiled) {
+      return {
+        concept: 'Compiled Language Control Flow & Branch Dispatch',
+        language: 'C++ / Java',
+        syntax: 'switch (operator) { case \'+\': return prev + current; }',
+        whatItDoes: 'Executes high-speed conditional branching and arithmetic calculations directly in hardware registers.',
+        whyItExists: 'Provides maximum execution speed and type safety for systems, financial calculations, and numerical engines.',
+        usedBy: 'Core Engine Classes',
+        beginnerExplanation: 'Compiled code runs directly on your computer processor. Switch statements jump immediately to the matching case without checking every option.',
+        intermediateExplanation: 'Compiles into jump tables enabling O(1) branch dispatch rather than sequential O(N) comparisons.',
+        advancedExplanation: 'Optimized into assembly jump tables with CPU branch prediction cache alignment.',
+        commonPitfalls: ['Forgetting break statements in switch cases', 'Division by zero without IEEE 754 NaN guards'],
+      };
+    }
+
+    return {
+      concept: 'Application Architecture & Component Logic',
+      language: 'Software Engineering',
+      syntax: 'export function Component() { /* Implementation */ }',
+      whatItDoes: 'Structures modular routines, state management, and visual presentation.',
+      whyItExists: 'Separates concerns into cohesive, maintainable modules that can be tested and scaled.',
+      usedBy: 'Application Modules',
+      beginnerExplanation: 'Organizes your code into clear, readable sections so each part has a specific responsibility.',
+      intermediateExplanation: 'Maintains unidirectional data flow and clean separation of concerns across project files.',
+      advancedExplanation: 'Optimized for modular bundling, memory efficiency, and deterministic execution lifecycles.',
+      commonPitfalls: ['Mixing business logic directly inside presentation templates', 'Unclear naming conventions'],
     };
   }
 
   public async generateChatResponse(
     message: string,
     context?: string,
-    settings?: AISettings
+    settings?: AISettings,
+    repoContext?: {
+      projectFiles?: Array<{ name: string; path?: string; content: string; language?: string }>;
+      activeFile?: { name: string; content: string; language?: string };
+      techStack?: { frontend?: string; language?: string; styling?: string; framework?: string };
+      projectName?: string;
+    }
   ): Promise<{ text: string }> {
-    const lower = message.toLowerCase();
-    if (lower.includes('why') || lower.includes('exist')) {
+    const raw = message.trim();
+    const lower = raw.toLowerCase();
+    const cleanTerm = raw.replace(/[?!.,;:()'"`]/g, '').trim();
+
+    // Extract search candidates: whole phrase, plus individual words/tokens ignoring filler words
+    const stopWords = new Set(['what', 'is', 'the', 'how', 'does', 'do', 'can', 'you', 'explain', 'tell', 'me', 'about', 'in', 'for', 'this', 'show', 'please', 'where', 'why']);
+    const candidateTokens = raw
+      .replace(/[?!.,;:()'"`]/g, ' ')
+      .split(/\s+/)
+      .map(w => w.trim())
+      .filter(w => w.length >= 2 && !stopWords.has(w.toLowerCase()));
+
+    const searchTerms = Array.from(new Set([cleanTerm, ...candidateTokens])).filter(Boolean);
+
+    // 1. Search repository files for the specific query term (e.g. "nav-btn", "navbar", "logo", "balance")
+    const allFiles = repoContext?.projectFiles || [];
+    const activeFile = repoContext?.activeFile;
+    const filesToSearch = activeFile ? [activeFile, ...allFiles.filter(f => f.name !== activeFile.name)] : allFiles;
+
+    let matchingRule = '';
+    let matchingFileName = '';
+    let matchType = '';
+    let matchedToken = '';
+
+    for (const term of searchTerms) {
+      for (const file of filesToSearch) {
+        if (!file.content) continue;
+        const content = file.content;
+
+        // Check for CSS class matching .term or id #term
+        const cssClassRegex = new RegExp(`(\\.[a-zA-Z0-9_-]*${term}[a-zA-Z0-9_-]*\\s*\\{[^}]*\\})`, 'i');
+        const cssMatch = content.match(cssClassRegex);
+        if (cssMatch) {
+          matchingRule = cssMatch[1].trim();
+          matchingFileName = file.name;
+          matchType = 'css';
+          matchedToken = term;
+          break;
+        }
+
+        // Check for HTML element with class="...term..."
+        const htmlClassRegex = new RegExp(`(<[a-zA-Z0-9_-]+[^>]*class=["'][^"']*${term}[^"']*["'][^>]*>)`, 'i');
+        const htmlMatch = content.match(htmlClassRegex);
+        if (htmlMatch) {
+          matchingRule = htmlMatch[1].trim();
+          matchingFileName = file.name;
+          matchType = 'html';
+          matchedToken = term;
+          break;
+        }
+
+        // Check for JavaScript/TypeScript function or variable
+        const jsRegex = new RegExp(`(?:const|let|var|function|def)\\s+([a-zA-Z0-9_]*${term}[a-zA-Z0-9_]*)[^;\\n{]*`, 'i');
+        const jsMatch = content.match(jsRegex);
+        if (jsMatch) {
+          matchingRule = jsMatch[0].trim();
+          matchingFileName = file.name;
+          matchType = 'js';
+          matchedToken = term;
+          break;
+        }
+      }
+      if (matchingRule) break;
+    }
+
+    // If matching code definition found in repo, generate bespoke educational explanation!
+    if (matchingRule) {
+      const displayToken = matchedToken || cleanTerm;
+      if (matchType === 'css') {
+        return {
+          text: `In **${repoContext?.projectName || 'this project'}**, \`${displayToken}\` is defined in \`${matchingFileName}\`:\n\n\`\`\`css\n${matchingRule}\n\`\`\`\n\n**What It Does:**\nThis CSS rule formats the interactive styling and layout for elements decorated with \`.${displayToken}\`. It specifies box dimensions, padding spacing, and uses Flexbox formatting so that button text and navigation icons align neatly. In this application, it provides accessible, visually distinct touch targets for users to navigate the portal.`
+        };
+      }
+      if (matchType === 'html') {
+        return {
+          text: `In **${repoContext?.projectName || 'this project'}**, \`${displayToken}\` appears in \`${matchingFileName}\`:\n\n\`\`\`html\n${matchingRule}\n\`\`\`\n\n**What It Does:**\nThis structural HTML landmark establishes an interactive container for \`${displayToken}\`. It binds visual CSS styling and attaches DOM click events so users can interact with this component in the viewport.`
+        };
+      }
+      if (matchType === 'js') {
+        return {
+          text: `In **${repoContext?.projectName || 'this project'}**, \`${displayToken}\` is declared in \`${matchingFileName}\`:\n\n\`\`\`javascript\n${matchingRule}\n\`\`\`\n\n**What It Does:**\nManages computational execution and data flow for \`${displayToken}\`. It coordinates parameters, transforms state, and updates the application interface when actions are triggered.`
+        };
+      }
+    }
+
+    // 2. Query regarding Repository Tech Stack, Architecture, or Prompt
+    if (lower.includes('tech stack') || lower.includes('stack') || lower.includes('what is this repo') || lower.includes('architecture') || lower.includes('prompt')) {
+      const stack = repoContext?.techStack;
+      const proj = repoContext?.projectName || 'This repository';
       return {
-        text: `In this architecture, components and utilities are separated to ensure high cohesion and loose coupling. Keeping business calculations pure makes them 100% testable and predictable.`
+        text: `### 🛠️ Architecture & Tech Stack for ${proj}\n\n- **Frontend / Markup**: ${stack?.frontend || 'HTML5 Semantic Layout & DOM'}\n- **Primary Language**: ${stack?.language || 'JavaScript / TypeScript'}\n- **Styling Architecture**: ${stack?.styling || 'CSS3 Flexbox & Grid System'}\n- **Repository Scale**: ${allFiles.length} files across the codebase\n\n**Project Purpose:**\nAn interactive web application featuring responsive navigation bars, dynamic catalog cards, and modular component hierarchy. You can inspect any file from the **Repository File Matrix** above to examine its complete implementation!`
       };
     }
-    if (lower.includes('state') || lower.includes('usestate')) {
+
+    // 3. Questions regarding CSS, HTML, Flexbox, or Layout
+    if (lower.includes('css') || lower.includes('flex') || lower.includes('grid') || lower.includes('style') || lower.includes('layout')) {
       return {
-        text: `React state (useState) provides component-level memory across re-renders. When updated via the setter, React's Fiber reconciler schedules a virtual DOM diff and smoothly patches the real DOM.`
+        text: `In this project's CSS architecture, layout containers use **CSS Flexbox** and the **Box Model** to achieve fluid alignment. Elements use semantic class selectors (like \`.navbar\`, \`.nav-btn\`, and \`.card\`) with CSS custom properties for uniform brand colors and spacing.`
       };
     }
-    if (lower.includes('type') || lower.includes('interface')) {
+
+    // 4. Questions regarding React State, Hooks
+    if (lower.includes('state') || lower.includes('usestate') || lower.includes('hook')) {
       return {
-        text: `TypeScript interfaces establish compile-time contracts. They define the shape of your data without adding any runtime overhead in the compiled JavaScript.`
+        text: `React state (\`useState\`) maintains reactive component memory across renders. Calling the setter dispatches a Virtual DOM reconciliation pass and smoothly updates the viewport.`
       };
     }
-    if (lower.includes('error') || lower.includes('bug') || lower.includes('fail')) {
+
+    // 5. Questions regarding Functions, Logic & Bugs
+    if (lower.includes('error') || lower.includes('bug') || lower.includes('fail') || lower.includes('fix')) {
       return {
-        text: `Let's break this down: Check your function parameters and return statement. Look at the hints tab above for progressive guidance from conceptual hints to partial solutions.`
+        text: `Let's debug this: Check the syntax in your active editor. Compare your implementation against the **Reference Specification** on the left. Ensure all closing braces, quotation marks, and semicolons match the expected pattern.`
       };
     }
+
+    // 6. Natural Language Contextual Response
+    const activeFileName = repoContext?.activeFile?.name || 'the active file';
+    const lang = repoContext?.activeFile?.language || repoContext?.techStack?.language || 'code';
     return {
-      text: `Great question regarding "${message}". In ${context || 'this project'}, we maintain strict TypeScript type safety and idiomatic React component patterns. Check the live preview on the right or explore the Code tab to see how the pieces connect!`
+      text: `Regarding "${raw}": In **${repoContext?.projectName || 'this project'}** (${activeFileName}), statements are structured following modern ${lang} standards. You can hover over any token in the Reference Specification to inspect its enclosing block, or use the editor on the right to test your implementation!`
     };
   }
 }
 
 export const aiService = new AIProviderService();
+

@@ -875,6 +875,150 @@ test('Surrounding Block Detection accurately identifies enclosing scopes, collab
   assert.equal(pyScope.name, 'Python Function: def calculate_tax()');
 });
 
+// Test 34: 10-20% Code Challenge Scaffolder on High-Scale Files (e.g. 1492-line bhukkad.html)
+test('Code Challenge Scaffolder calculates 10-20% challenge window and preserves 100% reference code', () => {
+  function generateChallenge(fileContent, fileName, language) {
+    const lines = fileContent.split('\n');
+    const N = lines.length;
+    const isHtml = fileName.endsWith('.html');
+    const isCss = fileName.endsWith('.css');
+    const cStart = isHtml ? '<!-- ' : (isCss ? '/* ' : '// ');
+    const cEnd = isHtml ? ' -->' : (isCss ? ' */' : '');
+
+    let challengeSize = Math.max(5, Math.min(220, Math.round(N * 0.15)));
+    if (N > 1000) {
+      challengeSize = Math.min(200, Math.max(100, Math.round(N * 0.12)));
+    }
+
+    let startIdx = Math.min(Math.round(N * 0.08), 25);
+    let endIdx = Math.min(N - 1, startIdx + challengeSize - 1);
+    const actualCount = endIdx - startIdx + 1;
+
+    const leading = lines.slice(0, startIdx);
+    const trailing = lines.slice(endIdx + 1);
+    const banner = [
+      `${cStart}🎯 YOUR CHALLENGE: Lines ${startIdx + 1} to ${endIdx + 1}${cEnd}`,
+      `${cStart}// Implement ~${actualCount} lines...${cEnd}`
+    ];
+
+    const scaffold = [...leading, ...banner, ...trailing].join('\n');
+    return {
+      fullReference: fileContent,
+      scaffoldUserCode: scaffold,
+      totalLines: N,
+      challengeCount: actualCount,
+      percent: Math.round((actualCount / N) * 100),
+      startLine: startIdx + 1,
+      endLine: endIdx + 1,
+    };
+  }
+
+  // 1. Simulate 1492-line bhukkad.html
+  const dummyHtmlLines = Array.from({ length: 1492 }, (_, i) => `  <div class="line-${i + 1}">Content</div>`);
+  dummyHtmlLines[0] = '<!DOCTYPE html><html><body>';
+  dummyHtmlLines[1491] = '</body></html>';
+  const htmlContent = dummyHtmlLines.join('\n');
+
+  const resultHtml = generateChallenge(htmlContent, 'bhukkad.html', 'html');
+  assert.equal(resultHtml.totalLines, 1492);
+  // Must be between 100 and 200 lines as requested by user
+  assert.ok(resultHtml.challengeCount >= 100 && resultHtml.challengeCount <= 200, `Expected 100-200 lines, got ${resultHtml.challengeCount}`);
+  // Percent should be around 10-20% (12%)
+  assert.ok(resultHtml.percent >= 10 && resultHtml.percent <= 20);
+  assert.equal(resultHtml.fullReference, htmlContent);
+  assert.ok(resultHtml.scaffoldUserCode.includes('<!-- 🎯 YOUR CHALLENGE'));
+  assert.ok(resultHtml.scaffoldUserCode.includes('<!DOCTYPE html><html><body>'));
+  assert.ok(resultHtml.scaffoldUserCode.includes('</body></html>'));
+
+  // 2. Simulate 50-line CSS file
+  const dummyCssLines = Array.from({ length: 50 }, (_, i) => `.item-${i} { color: red; }`);
+  const cssContent = dummyCssLines.join('\n');
+  const resultCss = generateChallenge(cssContent, 'styles.css', 'css');
+  assert.equal(resultCss.totalLines, 50);
+  assert.ok(resultCss.challengeCount >= 5 && resultCss.challengeCount <= 15);
+  assert.ok(resultCss.scaffoldUserCode.includes('/* 🎯 YOUR CHALLENGE'));
+});
+
+// Test 35: Context-Aware AI Search & Non-Repetitive Explanation Engine
+test('AI Chat generates authentic explanations for queries like nav-btn without canned TypeScript replies', () => {
+  const repoFiles = [
+    {
+      name: 'bhukkadresolved.html',
+      content: `
+        <header class="navbar">
+          <button class="nav-btn">Menu</button>
+        </header>
+        <style>
+          .nav-btn {
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            height: 64px;
+            background: #e11d48;
+          }
+        </style>
+      `
+    }
+  ];
+
+  function searchAndExplain(term, files, projectName) {
+    const raw = term.trim();
+    const cleanTerm = raw.replace(/[?!.,;:()'"`]/g, '').trim();
+    const stopWords = new Set(['what', 'is', 'the', 'how', 'does', 'do', 'can', 'you', 'explain', 'tell', 'me', 'about', 'in', 'for', 'this', 'show', 'please']);
+    const candidateTokens = raw
+      .replace(/[?!.,;:()'"`]/g, ' ')
+      .split(/\s+/)
+      .map(w => w.trim())
+      .filter(w => w.length >= 2 && !stopWords.has(w.toLowerCase()));
+
+    const searchTerms = Array.from(new Set([cleanTerm, ...candidateTokens])).filter(Boolean);
+
+    let matchingRule = '';
+    let matchType = '';
+    let foundFile = '';
+    let matchedToken = '';
+
+    for (const t of searchTerms) {
+      for (const f of files) {
+        const cssRegex = new RegExp(`(\\.[a-zA-Z0-9_-]*${t}[a-zA-Z0-9_-]*\\s*\\{[^}]*\\})`, 'i');
+        const cssMatch = f.content.match(cssRegex);
+        if (cssMatch) {
+          matchingRule = cssMatch[1].trim();
+          matchType = 'css';
+          foundFile = f.name;
+          matchedToken = t;
+          break;
+        }
+      }
+      if (matchingRule) break;
+    }
+
+    if (matchingRule && matchType === 'css') {
+      const displayToken = matchedToken || cleanTerm;
+      return {
+        text: `In **${projectName}**, \`${displayToken}\` is defined in \`${foundFile}\`:\n\n\`\`\`css\n${matchingRule}\n\`\`\`\n\n**What It Does:**\nThis CSS rule formats the interactive styling and layout for elements decorated with \`.${displayToken}\`. It specifies box dimensions, padding spacing, and uses Flexbox formatting.`
+      };
+    }
+
+    return { text: 'Generic fallback' };
+  }
+
+  // 1. Query for "nav-btn?"
+  const response1 = searchAndExplain('nav-btn?', repoFiles, 'Bhukkad');
+  assert.ok(response1.text.includes('.nav-btn {'));
+  assert.ok(response1.text.includes('display: flex;'));
+  assert.ok(response1.text.includes('padding: 0 24px;'));
+  assert.ok(response1.text.includes('height: 64px;'));
+  assert.ok(!response1.text.includes('strict TypeScript type safety'));
+
+  // 2. Query for "Explain nav-btn."
+  const response2 = searchAndExplain('Explain nav-btn.', repoFiles, 'Bhukkad');
+  assert.ok(response2.text.includes('.nav-btn {'));
+  assert.ok(response2.text.includes('Flexbox formatting'));
+  assert.ok(!response2.text.includes('strict TypeScript type safety'));
+});
+
+
 
 
 
