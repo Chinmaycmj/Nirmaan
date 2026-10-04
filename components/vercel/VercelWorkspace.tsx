@@ -22,6 +22,11 @@ import { AIFreeCheckpointModal } from '@/components/learning/AIFreeCheckpointMod
 import { VerifiedPortfolioModal } from '@/components/modals/VerifiedPortfolioModal';
 import { CommandPaletteModal, CommandItem } from '@/components/workspace/CommandPaletteModal';
 import { TrustTransparencyModal } from '@/components/modals/TrustTransparencyModal';
+import { HintLadder } from '@/components/learning/HintLadder';
+import { ErrorCard } from '@/components/learning/ErrorCard';
+import { FloatingLearningCard, LearningCardData } from '@/components/learning/FloatingLearningCard';
+import { WorkspaceStatusBar } from '@/components/workspace/WorkspaceStatusBar';
+import { ShortcutsCheatSheetModal } from '@/components/workspace/ShortcutsCheatSheetModal';
 
 import { LivePreview } from '@/components/preview/LivePreview';
 import { CodeEditor } from '@/components/ide/CodeEditor';
@@ -195,6 +200,12 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTrustModalOpen, setIsTrustModalOpen] = useState(false);
 
+  // Floating Line-by-Line Learning Card & Shortcuts
+  const [activeFloatingCard, setActiveFloatingCard] = useState<LearningCardData | null>(null);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [editorDensity, setEditorDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'dirty'>('saved');
+
   // Deep-dive Modals
   const [isExplanationOpen, setIsExplanationOpen] = useState(false);
   const [activeExplanation, setActiveExplanation] = useState<ConceptExplanation | null>(null);
@@ -213,17 +224,39 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // Listen for Ctrl+K / Cmd+K to toggle Command Palette
+  // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName);
+      // Cmd/Ctrl + K => Command Palette
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen(prev => !prev);
       }
+      // Cmd/Ctrl + Enter => Run & Validate
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleCheckSubmission();
+      }
+      // Cmd/Ctrl + H => Next progressive hint
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H')) {
+        e.preventDefault();
+        handleRevealNextHint();
+      }
+      // ? => Toggle Shortcuts Cheat Sheet
+      if (e.key === '?' && !isInput) {
+        e.preventDefault();
+        setIsShortcutsOpen(prev => !prev);
+      }
+      // Esc => close active modal or floating learning card
+      if (e.key === 'Escape') {
+        setActiveFloatingCard(null);
+        setIsShortcutsOpen(false);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [userCode, activeCheckpoint]);
 
   // Synchronize state when checkpoint changes
   useEffect(() => {
@@ -342,7 +375,23 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       'beginner'
     );
     setActiveExplanation(explanation);
-    setIsExplanationOpen(true);
+    
+    // Also trigger FloatingLearningCard for interactive line inspection
+    const targetFileContent = targetFile?.content || userCode;
+    const fileLines = targetFileContent.split('\n');
+    const selectedLineContent = fileLines[line - 1] || `Line ${line}`;
+    setActiveFloatingCard({
+      lineNumber: line,
+      lineContent: selectedLineContent,
+      token: conceptName,
+      language: getTargetLanguage(),
+      whatItDoes: explanation?.whatItDoes || `Controls rendering of UI element with ${conceptName}.`,
+      syntaxPattern: explanation?.syntax || selectedLineContent.trim(),
+      whyItIsUsed: explanation?.whyItExists || 'Connects presentation layer directly to state and data models.',
+      tryItSnippet: selectedLineContent.trim(),
+      commonMistake: explanation?.commonPitfalls?.[0] || 'Verify syntax and scope dependencies.',
+      externalDocUrl: `https://developer.mozilla.org/en-US/search?q=${encodeURIComponent(conceptName)}`,
+    });
   };
 
   const handleRevealNextHint = () => {
@@ -1007,6 +1056,25 @@ Type your code or ask any questions about this file!`
                           <BookOpen className="w-3.5 h-3.5" />
                           <span>Explain Concept</span>
                         </button>
+
+                        <button
+                          onClick={handleCheckSubmission}
+                          disabled={isSubmitting}
+                          className="text-xs bg-[#326080] hover:bg-[#254b66] text-white flex items-center gap-1.5 px-3 py-1 rounded-xl transition-all font-bold shadow-sm active:scale-95 disabled:opacity-50"
+                          title="Run sandbox tests (Ctrl+Enter / Cmd+Enter)"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Verifying...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5 fill-white" />
+                              <span>Run &amp; Check (⌘↵)</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
 
@@ -1093,10 +1161,11 @@ Type your code or ask any questions about this file!`
                           code={activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode || activeCheckpoint.initialCode || activeFile?.content || ''}
                           language={getTargetLanguage()}
                           onCopyOrInsert={() => setUserCode(activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode || activeCheckpoint.initialCode || '')}
-                          title={`REFERENCE SPECIFICATION (${project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'})`}
+                          title="Reference"
                           theme="sand"
                           projectName={project.name}
                           fileName={project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'}
+                          onOpenFloatingCard={(cardData) => setActiveFloatingCard(cardData)}
                         />
                       </div>
 
@@ -1106,7 +1175,7 @@ Type your code or ask any questions about this file!`
                         <div className="h-11 px-4 bg-white/90 border-b border-[#ebdcd0] flex items-center justify-between shrink-0">
                           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1c1917]">
                             <Code2 className="w-4 h-4 text-[#326080]" />
-                            <span>YOUR IMPLEMENTATION</span>
+                            <span>Your code</span>
                             <span className="text-[11px] font-normal text-[#78716c] font-sans">
                               • {project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'}
                             </span>
@@ -1117,6 +1186,14 @@ Type your code or ask any questions about this file!`
                             )}
                           </div>
                           <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditorDensity(editorDensity === 'comfortable' ? 'compact' : 'comfortable')}
+                              className="text-[11px] text-[#78716c] hover:text-[#1c1917] px-2 py-1 rounded-lg bg-white/90 hover:bg-[#f6e7db] border border-[#ebdcd0] transition-colors font-mono"
+                              title={`Current density: ${editorDensity}`}
+                            >
+                              {editorDensity === 'comfortable' ? 'Compact' : 'Comfortable'}
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -1146,7 +1223,7 @@ Type your code or ask any questions about this file!`
                         <div className="flex-1 flex overflow-hidden min-h-[380px] bg-white relative">
                           <div 
                             ref={gutterRef}
-                            className="w-12 md:w-14 shrink-0 bg-[#faf6ee] border-r border-[#ebdcd0] py-3.5 pr-2.5 text-right font-mono text-[12px] md:text-[13px] leading-6 text-[#a8a29e] select-none overflow-hidden"
+                            className={`w-12 md:w-14 shrink-0 bg-[#faf6ee] border-r border-[#ebdcd0] ${editorDensity === 'compact' ? 'py-1.5 pr-2 text-[11px] leading-5' : 'py-3.5 pr-2.5 text-[12px] md:text-[13px] leading-6'} text-right font-mono text-[#a8a29e] select-none overflow-hidden`}
                             aria-hidden="true"
                           >
                             {Array.from({ length: Math.max(1, (userCode ? userCode.split('\n').length : 1)) }).map((_, i) => (
@@ -1172,7 +1249,7 @@ Type your code or ask any questions about this file!`
                             onKeyUp={updateCursorPosition}
                             onSelect={updateCursorPosition}
                             placeholder={getCodePlaceholder()}
-                            className="flex-1 w-full bg-white py-3.5 px-3 font-mono text-[13px] md:text-sm text-[#0f172a] resize-none outline-none leading-6 placeholder-[#a8a29e] whitespace-pre overflow-x-auto selection:bg-[#B5D2E6]/60"
+                            className={`flex-1 w-full bg-white font-mono text-[#0f172a] resize-none outline-none placeholder-[#a8a29e] whitespace-pre overflow-x-auto selection:bg-[#B5D2E6]/60 ${editorDensity === 'compact' ? 'py-1.5 px-2.5 text-[12px] leading-5' : 'py-3.5 px-3 text-[13px] md:text-sm leading-6'}`}
                             spellCheck={false}
                           />
                         </div>
@@ -1197,72 +1274,34 @@ Type your code or ask any questions about this file!`
                     </div>
                   </div>
 
-                  {/* 4. Progressive Hints Tier */}
-                  {activeCheckpoint.hints && activeCheckpoint.hints.length > 0 && (
-                    <div className="rounded-2xl border border-amber-200/90 bg-[#fffdf8] p-4 space-y-3 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <button
-                          onClick={handleRevealNextHint}
-                          disabled={revealedHintIndex >= activeCheckpoint.hints.length}
-                          className="text-xs text-[#78350f] hover:text-[#92400e] flex items-center gap-2 transition-colors disabled:opacity-40 font-bold"
-                        >
-                          <Lightbulb className="w-4 h-4 text-amber-500" />
-                          <span>Need Guidance? Reveal Progressive Hint ({revealedHintIndex}/{activeCheckpoint.hints.length})</span>
-                        </button>
-                        {revealedHintIndex > 0 && (
-                          <span className="text-[11px] font-mono text-[#92400e] font-bold">
-                            Hint Level {revealedHintIndex} Active
-                          </span>
-                        )}
-                      </div>
+                  {/* 4. 4-Tier Progressive Hint Ladder */}
+                  <HintLadder
+                    hints={activeCheckpoint.hints || []}
+                    solutionCode={activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode}
+                    conceptName={activeCheckpoint.conceptName}
+                    taskPrompt={activeCheckpoint.prompt}
+                    onApplySnippet={(snippet) => {
+                      setUserCode(prev => prev ? `${prev}\n${snippet}` : snippet);
+                    }}
+                    onRevealSolution={() => {
+                      setUserCode(activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode || '');
+                    }}
+                    canRevealSolution={true}
+                    policyName={currentPolicy.displayName}
+                  />
 
-                      {revealedHintIndex > 0 && (
-                        <div className="space-y-2 pt-1">
-                          {activeCheckpoint.hints.slice(0, revealedHintIndex).map((hint: Hint, hIdx: number) => (
-                            <div 
-                              key={hIdx}
-                              className="p-3 rounded-xl bg-[#faf6ee] border border-amber-200/70 text-xs text-[#44403c] flex items-start gap-2.5"
-                            >
-                              <span className="font-bold text-[#92400e] font-mono text-[10px] mt-0.5">
-                                HINT {hIdx + 1}:
-                              </span>
-                              <span className="leading-relaxed">{hint.content}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 5. Validation Result Banner */}
+                  {/* 5. 5-Part Error Diagnostic Card */}
                   {lastEvaluation && (
-                    <div className={`p-4 rounded-2xl border text-sm shadow-sm ${
-                      lastEvaluation.passed
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                        : 'bg-amber-50 border-amber-300 text-amber-950'
-                    }`}>
-                      <div className="flex items-center gap-2 font-bold mb-1">
-                        {lastEvaluation.passed ? (
-                          <>
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                            <span>All Tests Passed! Excellent Job.</span>
-                          </>
-                        ) : (
-                          <>
-                            <AlertCircle className="w-5 h-5 text-amber-600" />
-                            <span>{lastEvaluation.title || 'Tests Incomplete. Keep Going!'}</span>
-                          </>
-                        )}
-                      </div>
-                      <p className="text-[#44403c] leading-relaxed mb-1.5 text-xs md:text-sm">
-                        {lastEvaluation.message}
-                      </p>
-                      {lastEvaluation.diagnostic?.suggestedHint && !lastEvaluation.passed && (
-                        <p className="text-[#78350f] text-xs italic font-medium">
-                          💡 Suggestion: {lastEvaluation.diagnostic.suggestedHint}
-                        </p>
-                      )}
-                    </div>
+                    <ErrorCard
+                      evaluation={lastEvaluation}
+                      onTryAgain={handleCheckSubmission}
+                      onJumpToLine={(line) => {
+                        if (textareaRef.current) {
+                          textareaRef.current.focus();
+                        }
+                      }}
+                      targetFileName={project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'}
+                    />
                   )}
 
                   {/* 6. Primary Action Buttons */}
@@ -1627,6 +1666,34 @@ Type your code or ask any questions about this file!`
           setUserCode(activeCheckpoint?.initialCode || '');
           setLastEvaluation(null);
         }}
+      />
+
+      {/* Persistent Workspace Status Bar */}
+      <WorkspaceStatusBar
+        saveStatus={saveStatus}
+        language={getTargetLanguage()}
+        runStatus={isSubmitting ? 'running' : lastEvaluation ? (lastEvaluation.passed ? 'passed' : 'failed') : 'idle'}
+        assistanceLevel={assistanceLevel}
+        lineCount={userCode ? userCode.split('\n').length : 0}
+        ownershipPercent={stats.verifiedOwnershipPercentage || stats.authoredPercentage || 42}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        onOpenPolicy={() => setIsTrustModalOpen(true)}
+        onOpenPortfolio={() => setIsPortfolioModalOpen(true)}
+      />
+
+      {/* Floating Line-by-Line Learning Card */}
+      <FloatingLearningCard
+        data={activeFloatingCard}
+        onClose={() => setActiveFloatingCard(null)}
+        onApplyExerciseSnippet={(snippet) => {
+          setUserCode(prev => prev ? `${prev}\n${snippet}` : snippet);
+        }}
+      />
+
+      {/* Shortcuts Cheat Sheet Modal */}
+      <ShortcutsCheatSheetModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
       />
     </div>
   );

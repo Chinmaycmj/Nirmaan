@@ -33,10 +33,15 @@ import {
   Zap,
   AlertTriangle,
   Compass,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
+import { LearningCardData } from '@/components/learning/FloatingLearningCard';
 
-interface InteractiveTokenCodeViewerProps {
+export interface InteractiveTokenCodeViewerProps {
   code: string;
   language: string;
   onCopyOrInsert?: () => void;
@@ -44,19 +49,24 @@ interface InteractiveTokenCodeViewerProps {
   theme?: 'sand' | 'dark';
   projectName?: string;
   fileName?: string;
+  onOpenFloatingCard?: (data: LearningCardData) => void;
+  onSelectLine?: (lineNum: number) => void;
 }
 
 export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProps> = ({
   code,
   language,
   onCopyOrInsert,
-  title = 'REFERENCE CODE',
+  title = 'Reference',
   theme = 'sand',
   projectName = 'Application',
   fileName,
+  onOpenFloatingCard,
+  onSelectLine,
 }) => {
   // Explanation Mode: 'block_scope' (Surrounding Scope & Block) vs 'ai_analysis' (AI Line Deep Analysis) vs 'official_syntax' (Official Language Specs)
   const [explanationMode, setExplanationMode] = useState<'block_scope' | 'ai_analysis' | 'official_syntax'>('block_scope');
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
 
   const [selectedLineIndex, setSelectedLineIndex] = useState<number>(0);
   const [hoveredLineIndex, setHoveredLineIndex] = useState<number | null>(null);
@@ -140,6 +150,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   const handleLineClickOrHover = (line: string, index: number) => {
     setHoveredLineIndex(index);
     setSelectedLineIndex(index);
+    if (onSelectLine) onSelectLine(index + 1);
     runAnalysisForLine(line, index + 1);
   };
 
@@ -178,7 +189,26 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   const handleTokenClick = (tokenText: string, line: string, lineIdx: number) => {
     setSelectedLineIndex(lineIdx);
     setSelectedToken(tokenText);
+    if (onSelectLine) onSelectLine(lineIdx + 1);
     runAnalysisForLine(line, lineIdx + 1, tokenText);
+  };
+
+  const handleTriggerOpenCard = () => {
+    if (onOpenFloatingCard) {
+      const activeLineText = lines[selectedLineIndex] || '';
+      onOpenFloatingCard({
+        lineNumber: selectedLineIndex + 1,
+        lineContent: activeLineText,
+        token: selectedToken || undefined,
+        language,
+        whatItDoes: blockAnalysis?.howTokenPowersBlock || blockAnalysis?.role || activeLineExplanation?.explanation || 'Executes this statement in the program.',
+        syntaxPattern: blockAnalysis?.enclosingBlock?.blockName || activeLineText.trim(),
+        whyItIsUsed: blockAnalysis?.whyUsed || blockAnalysis?.surroundingGroupContext || 'Encapsulates module state and logic.',
+        tryItSnippet: activeLineText.trim(),
+        commonMistake: blockAnalysis?.rippleEffect || 'Check for proper syntax structure and variable scope.',
+        externalDocUrl: blockAnalysis?.docUrl || activeLineExplanation?.externalDocUrl,
+      });
+    }
   };
 
   const handleTokenSelect = (e: React.MouseEvent, sylToken: LineSyllableToken) => {
@@ -250,7 +280,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
         : 'bg-[#08090d] border-zinc-800 text-[#f4f4f5]'
     }`}>
       {/* Top Header Bar */}
-      <div className={`h-11 px-4 border-b flex items-center justify-between select-none ${
+      <div className={`h-11 px-4 border-b flex items-center justify-between select-none shrink-0 ${
         isSand ? 'bg-white/80 border-[#ebdcd0]' : 'bg-zinc-900/90 border-zinc-800'
       }`}>
         <div className="flex items-center gap-2">
@@ -258,76 +288,72 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
             isSand ? 'text-[#326080]' : 'text-zinc-200'
           }`}>
             <BookOpen className="w-3.5 h-3.5" />
-            <span>{title} ({language})</span>
+            <span>{title}</span>
             {fileName && (
               <span className="text-[11px] font-normal text-[#78716c] font-sans">
                 • {fileName}
               </span>
             )}
-          </div>
-
-          {/* Mode Switcher Tabs: Surrounding Scope & Block vs AI Deep Analysis vs Official Specs */}
-          <div className="flex items-center p-0.5 rounded-lg bg-[#f6e7db] border border-[#ebdcd0] text-[11px] font-medium ml-2 shadow-inner">
-            <button
-              type="button"
-              onClick={() => setExplanationMode('block_scope')}
-              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
-                explanationMode === 'block_scope'
-                  ? 'bg-[#326080] text-white shadow-sm'
-                  : 'text-[#78716c] hover:text-[#1c1917]'
-              }`}
-              title="Dynamic Surrounding Scope & Block Inspector"
-            >
-              <Layers className="w-3 h-3" />
-              <span>Surrounding Scope &amp; Block</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setExplanationMode('ai_analysis')}
-              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
-                explanationMode === 'ai_analysis'
-                  ? 'bg-[#326080] text-white shadow-sm'
-                  : 'text-[#78716c] hover:text-[#1c1917]'
-              }`}
-              title="Deep AI Line Walkthrough & Pitfalls"
-            >
-              <Bot className="w-3 h-3" />
-              <span>AI Deep Analysis</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setExplanationMode('official_syntax')}
-              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
-                explanationMode === 'official_syntax'
-                  ? 'bg-[#326080] text-white shadow-sm'
-                  : 'text-[#78716c] hover:text-[#1c1917]'
-              }`}
-              title="Official Language Specs, Syllables & Phonetics"
-            >
-              <FileCode2 className="w-3 h-3" />
-              <span>Official Specs</span>
-            </button>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#f6e7db] text-[#57534e] border border-[#ebdcd0]">
+              {language}
+            </span>
           </div>
         </div>
 
-        {onCopyOrInsert && (
+        <div className="flex items-center gap-2">
+          {onOpenFloatingCard && (
+            <button
+              type="button"
+              onClick={handleTriggerOpenCard}
+              className={`text-[11px] px-2.5 py-1 rounded-lg border font-mono font-semibold transition-all shadow-2xs flex items-center gap-1.5 ${
+                isSand
+                  ? 'bg-white hover:bg-[#f6e7db] text-[#326080] border-[#ebdcd0]'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+              }`}
+              title="Open floating 6-section line card"
+            >
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>Card</span>
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={onCopyOrInsert}
-            className={`text-[11px] px-3 py-1 rounded-lg border font-mono font-semibold transition-all shadow-sm active:scale-95 ${
-              isSand 
-                ? 'bg-[#326080] hover:bg-[#254b66] text-white border-[#254b66]' 
-                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+            onClick={() => setIsInspectorOpen(!isInspectorOpen)}
+            className={`text-[11px] px-2.5 py-1 rounded-lg border font-mono font-semibold transition-all shadow-2xs flex items-center gap-1.5 ${
+              isInspectorOpen
+                ? 'bg-[#326080] text-white border-[#326080]'
+                : isSand
+                  ? 'bg-white hover:bg-[#f6e7db] text-[#57534e] border-[#ebdcd0]'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
             }`}
-            title="Load reference into workspace"
+            title={isInspectorOpen ? "Hide bottom inspector" : "Open scope & token inspector"}
           >
-            Copy Reference to Area
+            <Layers className="w-3 h-3" />
+            <span>{isInspectorOpen ? 'Hide Scope' : 'Scope Panel'}</span>
           </button>
-        )}
+
+          {onCopyOrInsert && (
+            <button
+              type="button"
+              onClick={onCopyOrInsert}
+              className={`text-[11px] px-3 py-1 rounded-lg border font-mono font-semibold transition-all shadow-2xs active:scale-95 ${
+                isSand 
+                  ? 'bg-[#326080] hover:bg-[#254b66] text-white border-[#254b66]' 
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+              }`}
+              title="Load reference into workspace"
+            >
+              Copy Reference
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Code Lines Container with Interactive Token Hover */}
-      <div className={`p-2 font-mono text-[13px] md:text-sm overflow-x-auto leading-6 min-h-[220px] max-h-[380px] custom-scrollbar ${
+      <div className={`p-2 font-mono text-[13px] md:text-sm overflow-x-auto leading-6 custom-scrollbar transition-all ${
+        isInspectorOpen ? 'min-h-[220px] max-h-[340px]' : 'flex-1 min-h-[440px]'
+      } ${
         isSand ? 'bg-[#fbf7ee]' : 'bg-[#050608]'
       }`}>
         {lines.map((line, idx) => {
@@ -440,9 +466,116 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
       {/* ========================================================================= */}
       {/* DYNAMIC SURROUNDING BLOCK & SCOPE INTELLIGENCE PANEL                      */}
       {/* ========================================================================= */}
-      <div className={`border-t p-4 text-xs transition-colors duration-200 ${
-        isSand ? 'bg-white border-[#ebdcd0]' : 'bg-[#090a0f] border-zinc-800'
-      }`}>
+      {!isInspectorOpen ? (
+        <div className={`h-9 px-3.5 border-t flex items-center justify-between text-xs select-none shrink-0 ${
+          isSand ? 'bg-[#faf6ee] border-[#ebdcd0]' : 'bg-zinc-900 border-zinc-800'
+        }`}>
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-2 h-2 rounded-full bg-[#326080]" />
+            <span className="font-mono text-[11px] font-bold text-[#1c1917]">L{selectedLineIndex + 1}</span>
+            {selectedToken && (
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-[#92400e] border border-amber-300 font-bold truncate">
+                {selectedToken}
+              </span>
+            )}
+            <span className="text-[11px] text-[#78716c] truncate">
+              {enclosingBlock?.blockName || 'Module Scope'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {onOpenFloatingCard && (
+              <button
+                type="button"
+                onClick={handleTriggerOpenCard}
+                className="text-[11px] font-mono px-2 py-0.5 rounded bg-white border border-[#ebdcd0] hover:bg-[#f6e7db] text-[#326080] font-bold transition-colors flex items-center gap-1 shadow-2xs"
+                title="Open interactive 6-section floating learning card"
+              >
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                <span>Card</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsInspectorOpen(true)}
+              className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#326080] hover:bg-[#254b66] text-white font-bold transition-colors flex items-center gap-1 shadow-2xs"
+              title="Open bottom scope & AI inspector"
+            >
+              <Layers className="w-3 h-3" />
+              <span>Scope Details</span>
+              <ChevronUp className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className={`border-t p-4 text-xs transition-colors duration-200 ${
+          isSand ? 'bg-white border-[#ebdcd0]' : 'bg-[#090a0f] border-zinc-800'
+        }`}>
+          {/* Drawer Top Navigation & Mode Switcher */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-[#ebdcd0]">
+            <div className="flex items-center p-0.5 rounded-lg bg-[#f6e7db] border border-[#ebdcd0] text-[11px] font-medium shadow-inner">
+              <button
+                type="button"
+                onClick={() => setExplanationMode('block_scope')}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
+                  explanationMode === 'block_scope'
+                    ? 'bg-[#326080] text-white shadow-sm'
+                    : 'text-[#78716c] hover:text-[#1c1917]'
+                }`}
+                title="Dynamic Surrounding Scope & Block Inspector"
+              >
+                <Layers className="w-3 h-3" />
+                <span>Scope &amp; Block</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExplanationMode('ai_analysis')}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
+                  explanationMode === 'ai_analysis'
+                    ? 'bg-[#326080] text-white shadow-sm'
+                    : 'text-[#78716c] hover:text-[#1c1917]'
+                }`}
+                title="Deep AI Line Walkthrough & Pitfalls"
+              >
+                <Bot className="w-3 h-3" />
+                <span>AI Analysis</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExplanationMode('official_syntax')}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-md transition-all font-semibold ${
+                  explanationMode === 'official_syntax'
+                    ? 'bg-[#326080] text-white shadow-sm'
+                    : 'text-[#78716c] hover:text-[#1c1917]'
+                }`}
+                title="Official Language Specs, Syllables & Phonetics"
+              >
+                <FileCode2 className="w-3 h-3" />
+                <span>Official Specs</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {onOpenFloatingCard && (
+                <button
+                  type="button"
+                  onClick={handleTriggerOpenCard}
+                  className="text-[11px] font-mono px-2 py-0.5 rounded bg-white border border-[#ebdcd0] hover:bg-[#f6e7db] text-[#326080] font-bold transition-colors flex items-center gap-1"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>Pop out Card</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsInspectorOpen(false)}
+                className="p-1 rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f6e7db] transition-colors"
+                title="Collapse scope drawer"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         {explanationMode === 'block_scope' ? (
           /* =================================================================== */
           /* MODE 1: DYNAMIC SURROUNDING SCOPE & ENCLOSING BLOCK ANALYSIS        */
@@ -890,6 +1023,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
           </div>
         )}
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 };
