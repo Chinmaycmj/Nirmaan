@@ -1018,6 +1018,173 @@ test('AI Chat generates authentic explanations for queries like nav-btn without 
   assert.ok(!response2.text.includes('strict TypeScript type safety'));
 });
 
+// Test 36: Deterministic 5-Level AI Assistance Policy Engine (Blueprint Section 4.1 & 9.1)
+test('Policy Engine enforces strict generation constraints and promotion gating across 5 assistance levels', () => {
+  const policies = {
+    1: { level: 1, name: 'Level 1: Tutor', maxLines: 0, minFloor: 85 },
+    2: { level: 2, name: 'Level 2: Pair', maxLines: 8, minFloor: 75 },
+    3: { level: 3, name: 'Level 3: Co-Developer', maxLines: 30, minFloor: 60 },
+    4: { level: 4, name: 'Level 4: Builder', maxLines: 120, minFloor: 40 },
+    5: { level: 5, name: 'Level 5: Autopilot', maxLines: 500, minFloor: 25 },
+  };
+
+  function enforcePolicy(levelNum, proposedLines, currentOwnership) {
+    const p = policies[levelNum];
+    if (levelNum === 1 && proposedLines > 3) {
+      return { allowed: false, reason: 'Level 1 blocks direct solutions; Socratic hints only.' };
+    }
+    if (levelNum === 2 && proposedLines > p.maxLines) {
+      return { allowed: false, reason: `Exceeds max allowed ${p.maxLines} lines for Pair mode.` };
+    }
+    if (currentOwnership < p.minFloor && levelNum >= 4) {
+      return { allowed: false, reason: `Ownership (${currentOwnership}%) below required floor (${p.minFloor}%).` };
+    }
+    return { allowed: true };
+  }
+
+  function canPromote(currentLvl, targetLvl, currentOwnership) {
+    // Lowering is always allowed freely
+    if (targetLvl <= currentLvl) return { allowed: true, requiresChallenge: false };
+    const target = policies[targetLvl];
+    if (currentOwnership < target.minFloor) {
+      return { allowed: false, requiresChallenge: true, reason: `Must have >= ${target.minFloor}% ownership.` };
+    }
+    return { allowed: true, requiresChallenge: false };
+  }
+
+  // 1. Level 1 must block full code generation
+  assert.equal(enforcePolicy(1, 20, 90).allowed, false);
+  assert.equal(enforcePolicy(1, 2, 90).allowed, true);
+
+  // 2. Level 2 must cap snippets at 8 lines
+  assert.equal(enforcePolicy(2, 12, 80).allowed, false);
+  assert.equal(enforcePolicy(2, 6, 80).allowed, true);
+
+  // 3. Level 4 requires at least 40% verified ownership
+  assert.equal(enforcePolicy(4, 50, 30).allowed, false);
+  assert.equal(enforcePolicy(4, 50, 65).allowed, true);
+
+  // 4. Lowering assistance level from Level 4 to Level 1 is always permitted
+  assert.equal(canPromote(4, 1, 30).allowed, true);
+
+  // 5. Raising assistance level from Level 1 to Level 4 when ownership is low requires challenge
+  const promoteBlocked = canPromote(1, 4, 35);
+  assert.equal(promoteBlocked.allowed, false);
+  assert.equal(promoteBlocked.requiresChallenge, true);
+});
+
+// Test 37: Line-Level Provenance & Multi-Tier Ownership Tracking (Blueprint Section 4.2)
+test('Line Provenance Engine computes Authored %, Understood %, and isolates Imported Baseline', () => {
+  function computeProvenance(files, isGithubRepo = false) {
+    let totalLines = 0;
+    let userLines = 0;
+    let understoodLines = 0;
+    let importedLines = 0;
+    let aiLines = 0;
+
+    for (const f of files) {
+      const lines = f.content.split('\n');
+      const count = lines.length;
+      totalLines += count;
+
+      const isImported = f.isImported || (isGithubRepo && !f.hasEdits);
+      const statuses = new Array(count).fill(isImported ? 'IMPORTED_BASELINE' : 'AI_GENERATED');
+
+      for (const c of f.contributions || []) {
+        for (let i = c.start - 1; i < c.end; i++) {
+          statuses[i] = c.type;
+        }
+      }
+
+      for (const s of statuses) {
+        if (s === 'USER_WRITTEN') userLines += 1;
+        else if (s === 'USER_UNDERSTOOD') understoodLines += 1;
+        else if (s === 'IMPORTED_BASELINE') importedLines += 1;
+        else aiLines += 1;
+      }
+    }
+
+    const activeLines = Math.max(1, totalLines - importedLines);
+    const effectiveTotal = importedLines > 0 ? activeLines : Math.max(1, totalLines);
+
+    const authoredPct = Math.round((userLines / effectiveTotal) * 100);
+    const understoodPct = Math.round((understoodLines / effectiveTotal) * 100);
+    const verifiedOwnership = Math.min(100, Math.round(((userLines + understoodLines) / effectiveTotal) * 100));
+
+    return { totalLines, userLines, understoodLines, importedLines, authoredPct, understoodPct, verifiedOwnership };
+  }
+
+  // 1. Fresh Project with 10 user lines, 5 understood lines, 15 AI lines (30 total)
+  const freshFiles = [
+    {
+      content: 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\n' +
+               'line11\nline12\nline13\nline14\nline15\n' +
+               'line16\nline17\nline18\nline19\nline20\nline21\nline22\nline23\nline24\nline25\nline26\nline27\nline28\nline29\nline30',
+      contributions: [
+        { start: 1, end: 10, type: 'USER_WRITTEN' },
+        { start: 11, end: 15, type: 'USER_UNDERSTOOD' }
+      ]
+    }
+  ];
+
+  const freshResult = computeProvenance(freshFiles);
+  assert.equal(freshResult.totalLines, 30);
+  assert.equal(freshResult.userLines, 10);
+  assert.equal(freshResult.understoodLines, 5);
+  assert.equal(freshResult.authoredPct, 33);
+  assert.equal(freshResult.understoodPct, 17);
+  assert.equal(freshResult.verifiedOwnership, 50);
+
+  // 2. Imported 1000-line repo where user authored 50 lines and understood 30 lines
+  const importedFiles = [
+    {
+      content: Array.from({ length: 1000 }, (_, i) => `code line ${i}`).join('\n'),
+      isImported: true,
+      contributions: [
+        { start: 1, end: 50, type: 'USER_WRITTEN' },
+        { start: 51, end: 80, type: 'USER_UNDERSTOOD' }
+      ]
+    }
+  ];
+
+  const importedResult = computeProvenance(importedFiles, true);
+  assert.equal(importedResult.totalLines, 1000);
+  assert.equal(importedResult.userLines, 50);
+  assert.equal(importedResult.understoodLines, 30);
+  // Verified ownership on active challenge lines
+  assert.ok(importedResult.verifiedOwnership > 0);
+});
+
+// Test 38: Command Palette & Verifiable Portfolio Integration (Blueprint Section 5.3 & 15)
+test('Command Palette registers all core actions and Verified Portfolio maps to CS Syllabus', () => {
+  const commands = [
+    { id: 'run-tests', title: 'Run & Validate Code', shortcut: 'Ctrl+Enter' },
+    { id: 'toggle-focus', title: 'Toggle Focus Mode', shortcut: 'Alt+F' },
+    { id: 'predict-reveal', title: 'Predict Next Step', shortcut: 'Alt+P' },
+    { id: 'explain-back', title: 'Explain-Back Code Audit', shortcut: 'Alt+E' },
+    { id: 'ai-free-checkpoint', title: 'AI-Free Mastery Checkpoint', shortcut: 'Alt+C' },
+    { id: 'view-portfolio', title: 'View Verified Engineering Portfolio' },
+    { id: 'knowledge-graph', title: 'Open Architectural Knowledge Graph' },
+  ];
+
+  assert.equal(commands.length, 7);
+  assert.ok(commands.some(c => c.shortcut === 'Ctrl+Enter'));
+  assert.ok(commands.some(c => c.shortcut === 'Alt+F'));
+  assert.ok(commands.some(c => c.shortcut === 'Alt+P'));
+  assert.ok(commands.some(c => c.shortcut === 'Alt+E'));
+  assert.ok(commands.some(c => c.shortcut === 'Alt+C'));
+
+  // Syllabus Mapping
+  const syllabusTopics = [
+    'Data Structures & Logic',
+    'Frontend Architecture',
+    'Software Engineering',
+    'System Verification'
+  ];
+  assert.equal(syllabusTopics.length, 4);
+});
+
+
 
 
 

@@ -1,6 +1,14 @@
-export type InterventionLevel = 'tutor' | 'guided' | 'collaborative' | 'ai';
+export type InterventionLevel = 'tutor' | 'pair' | 'guided' | 'collaborative' | 'builder' | 'ai';
 
-export type AuthorType = 'AI_GENERATED' | 'USER_WRITTEN' | 'AI_ASSISTED' | 'USER_MODIFIED';
+export type AssistanceLevelNumber = 1 | 2 | 3 | 4 | 5;
+
+export type AuthorType = 
+  | 'AI_GENERATED' 
+  | 'USER_WRITTEN' 
+  | 'AI_ASSISTED' 
+  | 'USER_MODIFIED' 
+  | 'USER_UNDERSTOOD' 
+  | 'IMPORTED_BASELINE';
 
 export interface CodeContribution {
   id: string;
@@ -10,6 +18,7 @@ export interface CodeContribution {
   authorType: AuthorType;
   timestamp: number;
   conceptId?: string;
+  explanationNotes?: string;
 }
 
 export interface ProjectFile {
@@ -47,7 +56,12 @@ export interface Project {
 export interface ProjectStats {
   totalLines: number;
   userWrittenLines: number;
+  understoodLines: number;
   aiGeneratedLines: number;
+  importedLines: number;
+  authoredPercentage: number;
+  understoodPercentage: number;
+  verifiedOwnershipPercentage: number;
   userPercentage: number;
   checkpointsCompleted: number;
   totalCheckpoints: number;

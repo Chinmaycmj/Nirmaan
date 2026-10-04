@@ -13,8 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LearnCraft AI | AI-Powered Co-Developer & Learning Platform",
-  description: "Build real applications with AI assistance while actively writing and mastering code.",
+  title: "Nirmaan | AI Learning IDE & Engineering Mentor",
+  description: "Build real software. Own every line. The AI co-developer that ensures you understand and master every line of code.",
+  keywords: ["AI coding", "engineering education", "code ownership", "interactive IDE", "learn to code", "Nirmaan"],
+  authors: [{ name: "Nirmaan Team" }],
+  openGraph: {
+    title: "Nirmaan | AI Learning IDE & Engineering Mentor",
+    description: "Build real software. Own every line. AI builds with you, not for you.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

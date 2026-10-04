@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import { InterventionLevel, ProjectStats } from '@/types/project';
@@ -45,10 +45,12 @@ export const Header: React.FC<HeaderProps> = ({
   onReturnToHero,
 }) => {
   const interventionLabels: Record<InterventionLevel, { name: string; desc: string }> = {
-    tutor: { name: 'Tutor Mode', desc: 'You write most code; AI hints & explains' },
-    guided: { name: 'Guided Builder', desc: 'AI writes infrastructure; you write core concepts' },
-    collaborative: { name: 'Collaborative', desc: 'AI writes large sections with periodic checks' },
-    ai: { name: 'AI Builder', desc: 'AI writes most; you inspect & learn' },
+    tutor: { name: 'Level 1: Tutor Mode', desc: 'You write all code; AI hints & explains' },
+    pair: { name: 'Level 2: Pair Mode', desc: 'AI suggests snippets; you write logic' },
+    guided: { name: 'Level 3: Co-Developer', desc: 'AI writes infrastructure; you write core concepts' },
+    collaborative: { name: 'Collaborative', desc: 'AI writes sections with checks' },
+    builder: { name: 'Level 4: AI Builder', desc: 'AI implements features with diff review' },
+    ai: { name: 'Level 5: Autopilot', desc: 'AI writes most; gated by audit' },
   };
 
   return (

@@ -1,4 +1,9 @@
-'use client';
+import fs from 'fs';
+import path from 'path';
+
+const workspacePath = path.resolve('components/vercel/VercelWorkspace.tsx');
+
+const workspaceCode = `'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Project, ProjectFile, ProjectStats, InterventionLevel, AssistanceLevelNumber, AuthorType } from '@/types/project';
@@ -134,7 +139,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
   const updateCursorPosition = () => {
     if (textareaRef.current) {
       const pos = textareaRef.current.selectionStart || 0;
-      const linesUpToCursor = userCode.substring(0, pos).split('\n');
+      const linesUpToCursor = userCode.substring(0, pos).split('\\n');
       setCursorLine(linesUpToCursor.length);
       setCursorCol((linesUpToCursor[linesUpToCursor.length - 1]?.length || 0) + 1);
     }
@@ -174,7 +179,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
 
   // Assistant Greeting
   const stackLanguage = project.techStack?.language || 'JavaScript';
-  const initialGreeting = `Welcome to your high-scale ${stackLanguage} architecture (${project.files.length} files). Reference code with line-by-line syntax and syllable analysis is on the left, and your active workspace is on the right. Let's build every line together!`;
+  const initialGreeting = \`Welcome to your high-scale \${stackLanguage} architecture (\${project.files.length} files). Reference code with line-by-line syntax and syllable analysis is on the left, and your active workspace is on the right. Let's build every line together!\`;
 
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([
     { 
@@ -304,8 +309,8 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
     const reference = activeFileChallenge?.fullReferenceCode || activeCheckpoint?.solutionCode || activeCheckpoint?.initialCode || '';
     if (!reference.trim()) return { matched: 0, total: 0, percent: 100 };
 
-    const refLines = reference.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('#') && !l.startsWith('/*'));
-    const userLines = userCode.split('\n').map(l => l.trim()).filter(Boolean);
+    const refLines = reference.split('\\n').map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('#') && !l.startsWith('/*'));
+    const userLines = userCode.split('\\n').map(l => l.trim()).filter(Boolean);
 
     if (refLines.length === 0) return { matched: 0, total: 0, percent: 100 };
 
@@ -392,7 +397,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
                       id: 'user-' + Date.now(),
                       fileId: file.id,
                       startLine: 1,
-                      endLine: userCode.split('\n').length,
+                      endLine: userCode.split('\\n').length,
                       authorType: 'USER_WRITTEN' as const,
                       timestamp: Date.now(),
                       conceptId: activeCheckpoint.conceptId
@@ -411,7 +416,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
           ...prev,
           {
             role: 'assistant',
-            text: `🎉 Outstanding work! You successfully mastered "${activeCheckpoint.conceptName}". ${evaluation.message}`
+            text: \`🎉 Outstanding work! You successfully mastered "\${activeCheckpoint.conceptName}". \${evaluation.message}\`
           }
         ]);
       }
@@ -420,7 +425,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         passed: false,
         score: 0,
         title: 'Evaluation Error',
-        message: `Evaluation error: ${err.message || 'Please check your code syntax.'}`,
+        message: \`Evaluation error: \${err.message || 'Please check your code syntax.'}\`,
         testResults: [],
         diagnostic: {
           whatHappened: 'Code evaluation failed',
@@ -455,7 +460,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         ...prev,
         {
           role: 'assistant',
-          text: `⚠️ **Policy Guard**: ${promotionCheck.message}`
+          text: \`⚠️ **Policy Guard**: \${promotionCheck.message}\`
         }
       ]);
       return;
@@ -467,11 +472,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       ...prev,
       {
         role: 'assistant',
-        text: `🛡️ **Assistance Policy Updated to ${targetConfig.displayName}** (${targetConfig.badge})
-
-• **Max AI Generation**: ${targetConfig.maxGeneratedLines === 0 ? 'Zero direct code (Socratic hints only)' : `≤ ${targetConfig.maxGeneratedLines} lines`}
-• **Required Ownership Floor**: ${targetConfig.minOwnershipFloor}%
-• ${targetConfig.description}`
+        text: \`🛡️ **Assistance Policy Updated to \${targetConfig.displayName}** (\${targetConfig.badge})\n\n• **Max AI Generation**: \${targetConfig.maxGeneratedLines === 0 ? 'Zero direct code (Socratic hints only)' : \`≤ \${targetConfig.maxGeneratedLines} lines\`}\n• **Required Ownership Floor**: \${targetConfig.minOwnershipFloor}%\n• \${targetConfig.description}\`
       }
     ]);
   };
@@ -489,7 +490,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
               id: 'understood-' + Date.now(),
               fileId: f.id,
               startLine: 1,
-              endLine: (f.content ? f.content.split('\n').length : 1),
+              endLine: (f.content ? f.content.split('\\n').length : 1),
               authorType: 'USER_UNDERSTOOD' as AuthorType,
               timestamp: Date.now(),
               conceptId: activeCheckpoint?.conceptId,
@@ -509,7 +510,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       ...prev,
       {
         role: 'assistant',
-        text: `🌟 **Comprehension Verified!** Your explanation for "${activeCheckpoint?.conceptName || activeFile.name}" scored **${score}/100**. Those lines are now certified as **Verified Understood Ownership** in your portfolio!`
+        text: \`🌟 **Comprehension Verified!** Your explanation for "\${activeCheckpoint?.conceptName || activeFile.name}" scored **\${score}/100**. Those lines are now certified as **Verified Understood Ownership** in your portfolio!\`
       }
     ]);
   };
@@ -521,7 +522,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
       ...prev,
       {
         role: 'assistant',
-        text: `🏆 **Independent Mastery Certified!** You solved the challenge without AI generation or assistance. This achievement has been recorded to your verified engineering portfolio.`
+        text: \`🏆 **Independent Mastery Certified!** You solved the challenge without AI generation or assistance. This achievement has been recorded to your verified engineering portfolio.\`
       }
     ]);
   };
@@ -538,7 +539,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
     try {
       const resp = await aiService.generateChatResponse(
         promptText,
-        `Project: ${project.name}. Current concept: ${activeCheckpoint?.conceptName || 'Software Architecture'}.`,
+        \`Project: \${project.name}. Current concept: \${activeCheckpoint?.conceptName || 'Software Architecture'}.\`,
         aiSettings,
         {
           projectFiles: project.files,
@@ -566,7 +567,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         ...prev,
         {
           role: 'assistant',
-          text: `In ${project.name}, we structure each statement cleanly with full syntax visibility. You can inspect any token or run tests anytime!`
+          text: \`In \${project.name}, we structure each statement cleanly with full syntax visibility. You can inspect any token or run tests anytime!\`
         }
       ]);
     } finally {
@@ -590,9 +591,9 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
             return {
               ...ckpt,
               targetFileId: file.id,
-              conceptName: `${file.name} Architecture`,
-              title: `Implement ${file.name} (Lines ${scaffold.startLine}–${scaffold.endLine})`,
-              prompt: `In this file (${scaffold.totalLines} lines), approximately ${scaffold.challengePercent}% of the implementation (${scaffold.challengeLineCount} lines, L${scaffold.startLine}–L${scaffold.endLine}) has been scaffolded for your active coding task. Reference the 100% full file on the left and write your implementation in the editor!`,
+              conceptName: \`\${file.name} Architecture\`,
+              title: \`Implement \${file.name} (Lines \${scaffold.startLine}–\${scaffold.endLine})\`,
+              prompt: \`In this file (\${scaffold.totalLines} lines), approximately \${scaffold.challengePercent}% of the implementation (\${scaffold.challengeLineCount} lines, L\${scaffold.startLine}–L\${scaffold.endLine}) has been scaffolded for your active coding task. Reference the 100% full file on the left and write your implementation in the editor!\`,
               initialCode: scaffold.scaffoldUserCode,
               solutionCode: scaffold.fullReferenceCode,
             };
@@ -605,12 +606,7 @@ export const VercelWorkspace: React.FC<VercelWorkspaceProps> = ({
         ...prev,
         {
           role: 'assistant',
-          text: `📂 **Loaded ${file.name}** (${scaffold.totalLines} lines).
-
-• **Left Column**: 100% of the authentic file is loaded into the Reference Specification viewer with line-by-line syllable decomposition.
-• **Right Column**: A **${scaffold.challengeLineCount}-line challenge** (${scaffold.challengePercent}% of file, Lines ${scaffold.startLine}–${scaffold.endLine}) has been created with surrounding code intact.
-
-Type your code or ask any questions about this file!`
+          text: \`📂 **Loaded \${file.name}** (\${scaffold.totalLines} lines).\n\n• **Left Column**: 100% of the authentic file is loaded into the Reference Specification viewer with line-by-line syllable decomposition.\n• **Right Column**: A **\${scaffold.challengeLineCount}-line challenge** (\${scaffold.challengePercent}% of file, Lines \${scaffold.startLine}–\${scaffold.endLine}) has been created with surrounding code intact.\n\nType your code or ask any questions about this file!\`
         }
       ]);
     }
@@ -625,7 +621,7 @@ Type your code or ask any questions about this file!`
   };
 
   // Total lines across all files in repository
-  const totalRepoLines = project.files.reduce((acc, f) => acc + (f.content ? f.content.split('\n').length : 0), 0);
+  const totalRepoLines = project.files.reduce((acc, f) => acc + (f.content ? f.content.split('\\n').length : 0), 0);
   const runtime = getRuntimeEnvironment();
   const currentPolicy = ASSISTANCE_POLICIES[assistanceLevel];
 
@@ -747,22 +743,22 @@ Type your code or ask any questions about this file!`
             <div className="hidden sm:flex items-center p-0.5 rounded-xl bg-white/70 border border-[#ebdcd0] text-xs ml-1 shadow-inner">
               <button
                 onClick={() => setWorkspaceMode('playground')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all font-semibold ${
+                className={\`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all font-semibold \${
                   workspaceMode === 'playground'
                     ? 'bg-[#326080] text-white shadow-sm'
                     : 'text-[#78716c] hover:text-[#1c1917]'
-                }`}
+                }\`}
               >
                 <Code2 className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">Playground</span>
               </button>
               <button
                 onClick={() => setWorkspaceMode('files')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all font-semibold ${
+                className={\`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all font-semibold \${
                   workspaceMode === 'files'
                     ? 'bg-[#326080] text-white shadow-sm'
                     : 'text-[#78716c] hover:text-[#1c1917]'
-                }`}
+                }\`}
               >
                 <FileCode className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">Files</span>
@@ -817,7 +813,7 @@ Type your code or ask any questions about this file!`
           <div 
             onClick={() => setIsPortfolioModalOpen(true)}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/90 border border-[#ebdcd0] text-xs font-mono shadow-sm cursor-pointer hover:bg-white transition-all"
-            title={`Verified Ownership: ${stats.verifiedOwnershipPercentage}% (${stats.authoredPercentage}% Authored • ${stats.understoodPercentage}% Understood • ${stats.importedLines} Imported)`}
+            title={\`Verified Ownership: \${stats.verifiedOwnershipPercentage}% (\${stats.authoredPercentage}% Authored • \${stats.understoodPercentage}% Understood • \${stats.importedLines} Imported)\`}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-emerald-700 font-bold">{stats.verifiedOwnershipPercentage}% Verified</span>
@@ -826,11 +822,11 @@ Type your code or ask any questions about this file!`
           {/* Focus Mode Toggle */}
           <button
             onClick={() => setIsFocusMode(!isFocusMode)}
-            className={`p-2 rounded-xl border text-xs font-bold transition-all ${
+            className={\`p-2 rounded-xl border text-xs font-bold transition-all \${
               isFocusMode
                 ? 'bg-[#326080] text-white border-[#326080] shadow-sm'
                 : 'bg-white/90 text-[#57534e] border-[#ebdcd0] hover:bg-[#f6e7db]'
-            }`}
+            }\`}
             title={isFocusMode ? "Exit Fullscreen Focus Mode" : "Focus Mode (100% Fullscreen Editor)"}
           >
             {isFocusMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -850,11 +846,11 @@ Type your code or ask any questions about this file!`
           {!isFocusMode && (
             <button
               onClick={() => setIsTutorDrawerOpen(!isTutorDrawerOpen)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
+              className={\`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors \${
                 isTutorDrawerOpen 
                   ? 'bg-[#326080] border-[#326080] text-white shadow-sm' 
                   : 'bg-white/90 hover:bg-[#f6e7db] border-[#ebdcd0] text-[#44403c] hover:text-[#1c1917]'
-              }`}
+              }\`}
               title="Toggle AI Co-Developer Chat Drawer"
             >
               <MessageSquare className="w-3.5 h-3.5 text-amber-600" />
@@ -883,11 +879,11 @@ Type your code or ask any questions about this file!`
           {!isFocusMode && (
             <button
               onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ml-1 ${
+              className={\`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ml-1 \${
                 isPreviewOpen
                   ? 'bg-white text-[#326080] border-[#ebdcd0] hover:bg-[#f6e7db]'
                   : 'bg-[#326080] text-white border-[#326080] shadow-md shadow-[#326080]/20'
-              }`}
+              }\`}
               title={isPreviewOpen ? "Minimize Preview Window" : "Open Companion Preview Window"}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -924,17 +920,17 @@ Type your code or ask any questions about this file!`
             {project.files.map((file) => {
               const isActive = file.id === project.activeFileId;
               const isTarget = file.id === activeCheckpoint?.targetFileId;
-              const lineCount = file.content ? file.content.split('\n').length : 0;
+              const lineCount = file.content ? file.content.split('\\n').length : 0;
 
               return (
                 <div
                   key={file.id}
                   onClick={() => handleSelectRepositoryFile(file)}
-                  className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                  className={\`p-2.5 rounded-xl border text-xs cursor-pointer transition-all \${
                     isActive 
                       ? 'bg-amber-50/90 border-amber-400/90 shadow-sm ring-1 ring-amber-300' 
                       : 'bg-white/80 hover:bg-[#f6e7db] border-[#ebdcd0]'
-                  }`}
+                  }\`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono font-bold text-xs truncate text-[#1c1917]" title={file.name}>
@@ -965,7 +961,7 @@ Type your code or ask any questions about this file!`
         {/* ----------------------------------------------------------------------- */}
         {/* PANE 1: THE LARGE CODING PLAYGROUND & EXPLANATION STUDIO                */}
         {/* ----------------------------------------------------------------------- */}
-        <div className={`flex-1 flex flex-col h-full bg-[#FFF1E7] overflow-y-auto custom-scrollbar ${isFocusMode ? 'p-2 md:p-3 space-y-3' : 'p-4 md:p-6 lg:p-8 space-y-6'}`}>
+        <div className={\`flex-1 flex flex-col h-full bg-[#FFF1E7] overflow-y-auto custom-scrollbar \${isFocusMode ? 'p-2 md:p-3 space-y-3' : 'p-4 md:p-6 lg:p-8 space-y-6'}\`}>
           
           {workspaceMode === 'playground' ? (
             <>
@@ -1074,13 +1070,13 @@ Type your code or ask any questions about this file!`
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full border ${
+                        <span className={\`text-[11px] font-mono px-2.5 py-0.5 rounded-full border \${
                           matchStats.percent === 100
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : matchStats.percent >= 50
                               ? 'bg-amber-100 text-amber-800 border-amber-300'
                               : 'bg-white/80 text-[#78716c] border-[#ebdcd0]'
-                        }`}>
+                        }\`}>
                           {matchStats.percent}% Reference Aligned ({matchStats.matched}/{matchStats.total} lines)
                         </span>
                       </div>
@@ -1093,7 +1089,7 @@ Type your code or ask any questions about this file!`
                           code={activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode || activeCheckpoint.initialCode || activeFile?.content || ''}
                           language={getTargetLanguage()}
                           onCopyOrInsert={() => setUserCode(activeFileChallenge?.fullReferenceCode || activeCheckpoint.solutionCode || activeCheckpoint.initialCode || '')}
-                          title={`REFERENCE SPECIFICATION (${project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'})`}
+                          title={\`REFERENCE SPECIFICATION (\${project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'})\`}
                           theme="sand"
                           projectName={project.name}
                           fileName={project.files.find(f => f.id === activeCheckpoint.targetFileId)?.name || activeFile?.name || 'app.js'}
@@ -1149,10 +1145,10 @@ Type your code or ask any questions about this file!`
                             className="w-12 md:w-14 shrink-0 bg-[#faf6ee] border-r border-[#ebdcd0] py-3.5 pr-2.5 text-right font-mono text-[12px] md:text-[13px] leading-6 text-[#a8a29e] select-none overflow-hidden"
                             aria-hidden="true"
                           >
-                            {Array.from({ length: Math.max(1, (userCode ? userCode.split('\n').length : 1)) }).map((_, i) => (
+                            {Array.from({ length: Math.max(1, (userCode ? userCode.split('\\n').length : 1)) }).map((_, i) => (
                               <div 
                                 key={i}
-                                className={`transition-colors ${cursorLine === i + 1 ? 'text-[#326080] font-bold' : ''}`}
+                                className={\`transition-colors \${cursorLine === i + 1 ? 'text-[#326080] font-bold' : ''}\`}
                               >
                                 {i + 1}
                               </div>
@@ -1187,7 +1183,7 @@ Type your code or ask any questions about this file!`
                             <span>UTF-8</span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span>{(userCode ? userCode.split('\n').length : 0)} lines</span>
+                            <span>{(userCode ? userCode.split('\\n').length : 0)} lines</span>
                             <span className="px-1.5 py-0.5 rounded bg-[#f6e7db] text-[#326080] font-bold text-[10px]">
                               {getTargetLanguage()}
                             </span>
@@ -1236,11 +1232,11 @@ Type your code or ask any questions about this file!`
 
                   {/* 5. Validation Result Banner */}
                   {lastEvaluation && (
-                    <div className={`p-4 rounded-2xl border text-sm shadow-sm ${
+                    <div className={\`p-4 rounded-2xl border text-sm shadow-sm \${
                       lastEvaluation.passed
                         ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
                         : 'bg-amber-50 border-amber-300 text-amber-950'
-                    }`}>
+                    }\`}>
                       <div className="flex items-center gap-2 font-bold mb-1">
                         {lastEvaluation.passed ? (
                           <>
@@ -1355,11 +1351,11 @@ Type your code or ask any questions about this file!`
                     <div
                       key={file.id}
                       onClick={() => handleSelectRepositoryFile(file)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs cursor-pointer font-mono transition-colors ${
+                      className={\`flex items-center gap-2 px-3 py-2 rounded-xl text-xs cursor-pointer font-mono transition-colors \${
                         file.id === project.activeFileId
                           ? 'bg-[#326080] text-white font-bold shadow-sm'
                           : 'text-[#44403c] hover:bg-white'
-                      }`}
+                      }\`}
                     >
                       <FileCode className="w-3.5 h-3.5" />
                       <span className="truncate">{file.name}</span>
@@ -1399,14 +1395,14 @@ Type your code or ask any questions about this file!`
               <div className="flex items-center gap-1.5 text-xs">
                 <button
                   onClick={() => setPreviewDevice('desktop')}
-                  className={`p-1 rounded transition-colors ${previewDevice === 'desktop' ? 'bg-[#326080] text-white' : 'text-[#78716c] hover:bg-[#f6e7db]'}`}
+                  className={\`p-1 rounded transition-colors \${previewDevice === 'desktop' ? 'bg-[#326080] text-white' : 'text-[#78716c] hover:bg-[#f6e7db]'}\`}
                   title="Desktop View"
                 >
                   <Monitor className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setPreviewDevice('mobile')}
-                  className={`p-1 rounded transition-colors ${previewDevice === 'mobile' ? 'bg-[#326080] text-white' : 'text-[#78716c] hover:bg-[#f6e7db]'}`}
+                  className={\`p-1 rounded transition-colors \${previewDevice === 'mobile' ? 'bg-[#326080] text-white' : 'text-[#78716c] hover:bg-[#f6e7db]'}\`}
                   title="Mobile View"
                 >
                   <Smartphone className="w-3.5 h-3.5" />
@@ -1434,9 +1430,9 @@ Type your code or ask any questions about this file!`
 
             {/* Live Preview Container */}
             <div className="flex-1 relative overflow-hidden bg-white/50 flex items-center justify-center p-2">
-              <div className={`w-full h-full rounded-2xl overflow-hidden shadow-lg transition-all ${
+              <div className={\`w-full h-full rounded-2xl overflow-hidden shadow-lg transition-all \${
                 previewDevice === 'mobile' ? 'max-w-[320px] max-h-[580px] border border-[#ebdcd0] rounded-3xl' : ''
-              }`}>
+              }\`}>
                 <LivePreview
                   key={previewKey}
                   files={project.files}
@@ -1474,14 +1470,14 @@ Type your code or ask any questions about this file!`
               {chatMessages.map((msg, idx) => (
                 <div 
                   key={idx} 
-                  className={`flex gap-2.5 text-xs ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={\`flex gap-2.5 text-xs \${msg.role === 'user' ? 'justify-end' : 'justify-start'}\`}
                 >
                   <div 
-                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-sm ${
+                    className={\`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-sm \${
                       msg.role === 'user'
                         ? 'bg-[#326080] text-white'
                         : 'bg-[#faf6ee] text-[#1c1917] border border-[#ebdcd0]'
-                    }`}
+                    }\`}
                   >
                     {msg.text}
                   </div>
@@ -1529,7 +1525,7 @@ Type your code or ask any questions about this file!`
             ...prev,
             {
               role: 'assistant',
-              text: `🚀 Successfully imported "${importedProj.name}" with ${importedProj.files.length} files. All files are loaded and ready for step-by-step line learning!`
+              text: \`🚀 Successfully imported "\${importedProj.name}" with \${importedProj.files.length} files. All files are loaded and ready for step-by-step line learning!\`
             }
           ]);
         }}
@@ -1559,8 +1555,8 @@ Type your code or ask any questions about this file!`
             {
               role: 'assistant',
               text: isCorrect
-                ? `🎯 **Prediction Validated!** You accurately predicted: "${text}". Your mental model is aligned with this implementation.`
-                : `💡 **Hypothesis Noted:** You predicted: "${text}". Inspect the reference code on the left to observe how the program actually behaves.`
+                ? \`🎯 **Prediction Validated!** You accurately predicted: "\${text}". Your mental model is aligned with this implementation.\`
+                : \`💡 **Hypothesis Noted:** You predicted: "\${text}". Inspect the reference code on the left to observe how the program actually behaves.\`
             }
           ]);
         }}
@@ -1631,3 +1627,7 @@ Type your code or ask any questions about this file!`
     </div>
   );
 };
+`;
+
+fs.writeFileSync(workspacePath, workspaceCode, 'utf8');
+console.log('Successfully upgraded VercelWorkspace.tsx with Master Improvement Blueprint architecture!');
