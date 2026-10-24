@@ -51,6 +51,8 @@ export interface InteractiveTokenCodeViewerProps {
   fileName?: string;
   onOpenFloatingCard?: (data: LearningCardData) => void;
   onSelectLine?: (lineNum: number) => void;
+  defaultInspectorOpen?: boolean;
+  className?: string;
 }
 
 export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProps> = ({
@@ -63,10 +65,12 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   fileName,
   onOpenFloatingCard,
   onSelectLine,
+  defaultInspectorOpen = false,
+  className = '',
 }) => {
   // Explanation Mode: 'block_scope' (Surrounding Scope & Block) vs 'ai_analysis' (AI Line Deep Analysis) vs 'official_syntax' (Official Language Specs)
   const [explanationMode, setExplanationMode] = useState<'block_scope' | 'ai_analysis' | 'official_syntax'>('block_scope');
-  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(defaultInspectorOpen);
 
   const [selectedLineIndex, setSelectedLineIndex] = useState<number>(0);
   const [hoveredLineIndex, setHoveredLineIndex] = useState<number | null>(null);
@@ -189,6 +193,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
   const handleTokenClick = (tokenText: string, line: string, lineIdx: number) => {
     setSelectedLineIndex(lineIdx);
     setSelectedToken(tokenText);
+    setIsInspectorOpen(true);
     if (onSelectLine) onSelectLine(lineIdx + 1);
     runAnalysisForLine(line, lineIdx + 1, tokenText);
   };
@@ -278,7 +283,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
       isSand 
         ? 'bg-white border-[#ebdcd0] text-[#1c1917]' 
         : 'bg-[#08090d] border-zinc-800 text-[#f4f4f5]'
-    }`}>
+    } ${className}`}>
       {/* Top Header Bar */}
       <div className={`h-11 px-4 border-b flex items-center justify-between select-none shrink-0 ${
         isSand ? 'bg-white/80 border-[#ebdcd0]' : 'bg-zinc-900/90 border-zinc-800'
@@ -352,7 +357,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
 
       {/* Main Code Lines Container with Interactive Token Hover */}
       <div className={`p-2 font-mono text-[13px] md:text-sm overflow-x-auto leading-6 custom-scrollbar transition-all ${
-        isInspectorOpen ? 'min-h-[220px] max-h-[340px]' : 'flex-1 min-h-[440px]'
+        isInspectorOpen ? 'flex-1 min-h-[220px] max-h-[52vh] overflow-y-auto' : 'flex-1 min-h-[440px] overflow-y-auto'
       } ${
         isSand ? 'bg-[#fbf7ee]' : 'bg-[#050608]'
       }`}>
@@ -508,7 +513,7 @@ export const InteractiveTokenCodeViewer: React.FC<InteractiveTokenCodeViewerProp
           </div>
         </div>
       ) : (
-        <div className={`border-t p-4 text-xs transition-colors duration-200 ${
+        <div className={`border-t p-4 text-xs transition-colors duration-200 max-h-[48vh] overflow-y-auto custom-scrollbar ${
           isSand ? 'bg-white border-[#ebdcd0]' : 'bg-[#090a0f] border-zinc-800'
         }`}>
           {/* Drawer Top Navigation & Mode Switcher */}

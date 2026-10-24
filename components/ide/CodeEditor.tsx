@@ -7,24 +7,35 @@ import {
   Sparkles, 
   FileCode, 
   HelpCircle, 
-  Check, 
-  Info, 
   ExternalLink,
-  BookOpen,
-  Code2,
-  X
+  BookOpen, 
+  Code2, 
+  X,
+  Layers,
+  Zap,
+  Info
 } from 'lucide-react';
 import { 
   explainCodeLine, 
   findTokenDocumentation, 
   TokenDoc 
 } from '@/lib/learning/tokenDocumentation';
+import { 
+  analyzeTokenInBlockContext,
+  detectEnclosingCodeBlock,
+  TokenBlockContextAnalysis,
+  EnclosingBlockInfo
+} from '@/lib/ai/blockContextAnalyzer';
+import { InteractiveTokenCodeViewer } from '@/components/learning/InteractiveTokenCodeViewer';
+import { LearningCardData } from '@/components/learning/FloatingLearningCard';
 
 interface CodeEditorProps {
   activeFile: ProjectFile | null;
   onCodeChange: (newContent: string) => void;
   onExplainSelection?: (code: string) => void;
   onWhyDoesThisExist?: (code: string) => void;
+  onOpenFloatingCard?: (data: LearningCardData) => void;
+  projectName?: string;
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
@@ -32,11 +43,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   onCodeChange,
   onExplainSelection,
   onWhyDoesThisExist,
+  onOpenFloatingCard,
+  projectName = 'Application',
 }) => {
   const editorRef = useRef<any>(null);
+  // View mode: 'inspector' (Interactive Token & Scope Inspector - DEFAULT) vs 'editor' (Raw Monaco Editor)
+  const [viewMode, setViewMode] = useState<'inspector' | 'editor'>('inspector');
   const [activeLineNumber, setActiveLineNumber] = useState<number>(1);
   const [activeLineContent, setActiveLineContent] = useState<string>('');
   const [selectedTokenDoc, setSelectedTokenDoc] = useState<TokenDoc | null>(null);
+  const [activeTokenBlockContext, setActiveTokenBlockContext] = useState<TokenBlockContextAnalysis | null>(null);
   const [showInspector, setShowInspector] = useState<boolean>(true);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
@@ -70,13 +86,48 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     const initialLine = editor.getModel()?.getLineContent(1) || '';
     setActiveLineContent(initialLine);
 
-    // Track cursor position line change
+    // Track cursor position line and token changes
     editor.onDidChangeCursorPosition((e) => {
       const lineNum = e.position.lineNumber;
       setActiveLineNumber(lineNum);
       const lineText = editor.getModel()?.getLineContent(lineNum) || '';
       setActiveLineContent(lineText);
-      setSelectedTokenDoc(null);
+
+      // Detect token under cursor
+      const wordObj = editor.getModel()?.getWordAtPosition(e.position);
+      if (wordObj && wordObj.word && activeFile) {
+        const word = wordObj.word;
+        const allLines = (activeFile.content || '').split('\n');
+        const tokenCtx = analyzeTokenInBlockContext(
+          word,
+          lineText,
+          lineNum - 1,
+          allLines,
+          activeFile.language,
+          projectName
+        );
+        setActiveTokenBlockContext(tokenCtx);
+
+        const doc = findTokenDocumentation(word, activeFile.language);
+        if (doc) {
+          setSelectedTokenDoc(doc);
+        } else {
+          setSelectedTokenDoc({
+            token: word,
+            name: `${word} (${tokenCtx.role})`,
+            category: 'keyword',
+            language: (activeFile.language as any) || 'universal',
+            shortDescription: tokenCtx.whyUsed,
+            detailedExplanation: `${tokenCtx.whyUsed} In ${tokenCtx.enclosingBlock.blockName}, this token collaborates with sibling symbols to enforce runtime logic.`,
+            documentationUrl: tokenCtx.docUrl,
+            documentationSource: (tokenCtx.docSource as any) || 'MDN Web Docs',
+            grammarRole: tokenCtx.role,
+          });
+        }
+      } else {
+        setSelectedTokenDoc(null);
+        setActiveTokenBlockContext(null);
+      }
     });
   };
 
@@ -89,6 +140,25 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     } else if (activeFile) {
       onWhyDoesThisExist(activeFile.content);
     }
+  };
+
+  const handleTriggerFloatingCard = (token?: string, why?: string, role?: string) => {
+    if (!onOpenFloatingCard || !activeFile) return;
+    const allLines = (activeFile.content || '').split('\n');
+    const enclosing = detectEnclosingCodeBlock(allLines, activeLineNumber - 1, activeFile.language);
+
+    onOpenFloatingCard({
+      lineNumber: activeLineNumber,
+      lineContent: activeLineContent,
+      token: token || selectedTokenDoc?.token || undefined,
+      language: activeFile.language,
+      whatItDoes: role || activeTokenBlockContext?.role || selectedTokenDoc?.shortDescription || 'Executes this instruction in the program.',
+      syntaxPattern: enclosing.blockName || activeLineContent.trim(),
+      whyItIsUsed: why || activeTokenBlockContext?.howTokenPowersBlock || selectedTokenDoc?.detailedExplanation || 'Encapsulates module state and logic.',
+      tryItSnippet: activeLineContent.trim(),
+      commonMistake: activeTokenBlockContext?.rippleEffect || 'Ensure proper syntax, spelling, and variable scope.',
+      externalDocUrl: activeTokenBlockContext?.docUrl || selectedTokenDoc?.documentationUrl,
+    });
   };
 
   if (!activeFile) {
@@ -114,31 +184,58 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   return (
     <div className="flex-1 h-full flex flex-col bg-black overflow-hidden font-sans">
       {/* File Tab & Quick Actions Bar */}
-      <div className="h-10 bg-black border-b border-zinc-800 px-4 flex items-center justify-between select-none shrink-0">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs font-semibold text-white">{activeFile.name}</span>
-          <span className="text-[10px] text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 font-mono">
+      <div className="h-11 bg-black border-b border-zinc-800 px-4 flex items-center justify-between select-none shrink-0 gap-3">
+        <div className="flex items-center space-x-2 min-w-0">
+          <span className="text-xs font-semibold text-white truncate">{activeFile.name}</span>
+          <span className="text-[10px] text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 font-mono shrink-0">
             {activeFile.language}
           </span>
-          <span className="text-[10px] text-zinc-500 font-mono">
+          <span className="text-[10px] text-zinc-500 font-mono shrink-0 hidden sm:inline">
             Line {activeLineNumber}
           </span>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {/* Toggle token & line inspector */}
-          <button
-            onClick={() => setShowInspector(!showInspector)}
-            className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs transition-colors border font-mono ${
-              showInspector 
-                ? 'bg-zinc-800 text-white border-zinc-600' 
-                : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white'
-            }`}
-            title="Toggle Token & Line Documentation Inspector"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Docs Inspector</span>
-          </button>
+        {/* View Mode Toggle & Actions */}
+        <div className="flex items-center space-x-2 shrink-0">
+          {/* Mode Switcher: Token Inspector vs Monaco Raw Editor */}
+          <div className="flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-mono">
+            <button
+              onClick={() => setViewMode('inspector')}
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded transition-all ${
+                viewMode === 'inspector'
+                  ? 'bg-[#326080] text-white font-bold shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Interactive Token & Scope Inspector: Click any token in the code to view its meaning and surrounding block"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span>Token Inspector</span>
+            </button>
+            <button
+              onClick={() => setViewMode('editor')}
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded transition-all ${
+                viewMode === 'editor'
+                  ? 'bg-zinc-800 text-white font-bold shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Raw Code Editor: Monaco text editor for direct code modification"
+            >
+              <Code2 className="w-3.5 h-3.5 text-blue-400" />
+              <span>Code Editor</span>
+            </button>
+          </div>
+
+          {/* Pop out 6-section Floating Learning Card */}
+          {onOpenFloatingCard && (
+            <button
+              onClick={() => handleTriggerFloatingCard()}
+              className="flex items-center space-x-1.5 px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 rounded text-xs transition-colors font-medium"
+              title="Pop out 6-section interactive Learning Card"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Learning Card</span>
+            </button>
+          )}
 
           {/* Why does this exist contextual button */}
           <button
@@ -147,127 +244,188 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             title="Ask AI: Why does this code exist in our project?"
           >
             <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Why does this exist?</span>
+            <span className="hidden md:inline">Why exist?</span>
           </button>
         </div>
       </div>
 
-      {/* Monaco Editor Container */}
-      <div className="flex-1 relative min-h-0">
-        <Editor
-          height="100%"
-          language={mapLanguage(activeFile.language)}
-          value={activeFile.content}
-          theme="learncraft-dark"
-          onChange={(val) => onCodeChange(val || '')}
-          onMount={handleEditorDidMount}
-          options={{
-            fontSize: 13,
-            fontFamily: 'Consolas, "Fira Code", monospace',
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-            wordWrap: 'on',
-            lineNumbers: 'on',
-            padding: { top: 12, bottom: 12 },
-            cursorBlinking: 'smooth',
-            smoothScrolling: true,
-          }}
-        />
-      </div>
+      {/* Main Container: Interactive Token Inspector (Default) or Monaco Editor */}
+      {viewMode === 'inspector' ? (
+        <div className="flex-1 min-h-0 h-full overflow-hidden">
+          <InteractiveTokenCodeViewer
+            code={activeFile.content}
+            language={activeFile.language}
+            fileName={activeFile.name}
+            projectName={projectName}
+            theme="dark"
+            title="Token & Scope Inspector"
+            defaultInspectorOpen={true}
+            onOpenFloatingCard={onOpenFloatingCard}
+            className="h-full border-0 rounded-none shadow-none"
+          />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden">
+          {/* Monaco Editor Canvas */}
+          <div className="flex-1 relative min-h-0">
+            <Editor
+              height="100%"
+              language={mapLanguage(activeFile.language)}
+              value={activeFile.content}
+              theme="learncraft-dark"
+              onChange={(val) => onCodeChange(val || '')}
+              onMount={handleEditorDidMount}
+              options={{
+                fontSize: 13,
+                fontFamily: 'Consolas, "Fira Code", monospace',
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                tabSize: 2,
+                wordWrap: 'on',
+                lineNumbers: 'on',
+                padding: { top: 12, bottom: 12 },
+                cursorBlinking: 'smooth',
+                smoothScrolling: true,
+              }}
+            />
+          </div>
 
-      {/* Live Interactive Line & Token Documentation HUD Bar */}
-      {showInspector && (
-        <div className="border-t border-zinc-800 bg-[#08090d] p-3 text-xs shrink-0 select-text">
-          {selectedTokenDoc ? (
-            /* Focused Token Breakdown */
-            <div className="space-y-1.5 animate-fadeIn bg-black p-2.5 rounded-lg border border-zinc-700">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-white font-mono text-[11px] font-bold border border-zinc-600">
-                    {selectedTokenDoc.token}
-                  </span>
-                  <span className="text-[11px] text-zinc-400 uppercase tracking-wide font-mono">
-                    {selectedTokenDoc.name}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setSelectedTokenDoc(null)}
-                  className="text-zinc-400 hover:text-white p-0.5"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <p className="text-zinc-300 text-xs leading-relaxed">
-                {selectedTokenDoc.detailedExplanation}
-              </p>
-
-              {selectedTokenDoc.realLifeAnalogy && (
-                <div className="p-2 rounded bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-300 italic">
-                  <span className="font-semibold not-italic text-zinc-200">🌍 Analogy: </span>
-                  "{selectedTokenDoc.realLifeAnalogy}"
-                </div>
-              )}
-
-              <div className="pt-1 flex items-center justify-between">
-                <span className="text-zinc-500 font-mono text-[10px]">
-                  Language: <strong className="text-zinc-300 uppercase">{selectedTokenDoc.language}</strong>
-                </span>
-                <a
-                  href={selectedTokenDoc.documentationUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white text-black hover:bg-zinc-200 font-semibold text-[11px] transition-all shadow"
-                >
-                  <span>Original Source: {selectedTokenDoc.documentationSource}</span>
-                  <ExternalLink className="w-3 h-3 text-black" />
-                </a>
-              </div>
-            </div>
-          ) : (
-            /* Line Summary & Tokens */
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[10px] font-mono font-semibold uppercase px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 shrink-0">
-                    Line {activeLineNumber}
-                  </span>
-                  <span className="text-zinc-300 font-medium text-xs truncate">
-                    {lineDoc.explanation}
-                  </span>
-                </div>
-
-                {lineDoc.externalDocUrl && (
-                  <a
-                    href={lineDoc.externalDocUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-zinc-200 hover:text-white underline decoration-zinc-600 hover:decoration-white font-mono transition-colors shrink-0"
-                    title={`View original specification on ${lineDoc.docSource}`}
-                  >
-                    <span>Official Docs: {lineDoc.docSource}</span>
-                    <ExternalLink className="w-3 h-3 text-zinc-400" />
-                  </a>
-                )}
-              </div>
-
-              {/* Detected tokens on this line */}
-              {lineDoc.allTokens.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span className="text-[10px] text-zinc-500 font-mono uppercase">Tokens:</span>
-                  {lineDoc.allTokens.map((t, i) => (
+          {/* Live Interactive Line & Token Documentation HUD Bar */}
+          {showInspector && (
+            <div className="border-t border-zinc-800 bg-[#08090d] p-3 text-xs shrink-0 select-text max-h-[42vh] overflow-y-auto custom-scrollbar">
+              {selectedTokenDoc ? (
+                /* Focused Token Breakdown */
+                <div className="space-y-2 animate-fadeIn bg-black p-3 rounded-lg border border-zinc-700">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 rounded bg-zinc-800 text-white font-mono text-[11px] font-bold border border-zinc-600">
+                        {selectedTokenDoc.token}
+                      </span>
+                      <span className="text-[11px] text-zinc-400 uppercase tracking-wide font-mono font-semibold">
+                        {selectedTokenDoc.name}
+                      </span>
+                      {activeTokenBlockContext?.enclosingBlock && (
+                        <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 font-mono">
+                          {activeTokenBlockContext.enclosingBlock.blockName}
+                        </span>
+                      )}
+                    </div>
                     <button
-                      key={i}
-                      onClick={() => setSelectedTokenDoc(t)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-[10px] font-mono transition-colors"
-                      title={`Click to inspect ${t.name}`}
+                      onClick={() => {
+                        setSelectedTokenDoc(null);
+                        setActiveTokenBlockContext(null);
+                      }}
+                      className="text-zinc-400 hover:text-white p-0.5"
                     >
-                      <span>{t.token}</span>
-                      <HelpCircle className="w-2.5 h-2.5 text-zinc-400" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
-                  ))}
+                  </div>
+
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    {activeTokenBlockContext?.howTokenPowersBlock || selectedTokenDoc.detailedExplanation}
+                  </p>
+
+                  {activeTokenBlockContext?.rippleEffect && (
+                    <div className="p-2 rounded bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-300">
+                      <span className="font-semibold text-amber-400">⚡ Ripple Effect: </span>
+                      {activeTokenBlockContext.rippleEffect}
+                    </div>
+                  )}
+
+                  {selectedTokenDoc.realLifeAnalogy && (
+                    <div className="p-2 rounded bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-300 italic">
+                      <span className="font-semibold not-italic text-zinc-200">🌍 Analogy: </span>
+                      "{selectedTokenDoc.realLifeAnalogy}"
+                    </div>
+                  )}
+
+                  <div className="pt-1 flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-zinc-500 font-mono text-[10px]">
+                      Language: <strong className="text-zinc-300 uppercase">{selectedTokenDoc.language}</strong>
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      {onOpenFloatingCard && (
+                        <button
+                          onClick={() => handleTriggerFloatingCard(selectedTokenDoc.token, activeTokenBlockContext?.howTokenPowersBlock, selectedTokenDoc.name)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono text-[11px] border border-zinc-700 transition-colors"
+                        >
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          <span>Pop out Card</span>
+                        </button>
+                      )}
+
+                      <a
+                        href={selectedTokenDoc.documentationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white text-black hover:bg-zinc-200 font-semibold text-[11px] transition-all shadow"
+                      >
+                        <span>Original Source: {selectedTokenDoc.documentationSource}</span>
+                        <ExternalLink className="w-3 h-3 text-black" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Line Summary & Tokens */
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-mono font-semibold uppercase px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 shrink-0">
+                        Line {activeLineNumber}
+                      </span>
+                      <span className="text-zinc-300 font-medium text-xs truncate">
+                        {lineDoc.explanation}
+                      </span>
+                    </div>
+
+                    {lineDoc.externalDocUrl && (
+                      <a
+                        href={lineDoc.externalDocUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-zinc-200 hover:text-white underline decoration-zinc-600 hover:decoration-white font-mono transition-colors shrink-0"
+                        title={`View original specification on ${lineDoc.docSource}`}
+                      >
+                        <span>Official Docs: {lineDoc.docSource}</span>
+                        <ExternalLink className="w-3 h-3 text-zinc-400" />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Detected tokens on this line */}
+                  {lineDoc.allTokens.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span className="text-[10px] text-zinc-500 font-mono uppercase">Tokens:</span>
+                      {lineDoc.allTokens.map((t, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setSelectedTokenDoc(t);
+                            if (activeFile) {
+                              const allLines = (activeFile.content || '').split('\n');
+                              const tokenCtx = analyzeTokenInBlockContext(
+                                t.token,
+                                activeLineContent,
+                                activeLineNumber - 1,
+                                allLines,
+                                activeFile.language,
+                                projectName
+                              );
+                              setActiveTokenBlockContext(tokenCtx);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-[10px] font-mono transition-colors"
+                          title={`Click to inspect ${t.name}`}
+                        >
+                          <span>{t.token}</span>
+                          <HelpCircle className="w-2.5 h-2.5 text-zinc-400" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

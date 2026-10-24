@@ -660,25 +660,51 @@ export function explainCodeLine(lineContent: string, lineNumber: number, languag
     explanation = `Module export declaring and exposing the primary component architecture.`;
   } else if (trimmed.includes('import ')) {
     explanation = `ES Module import loading external components, utilities, or styles into this scope.`;
+  } else if (trimmed.includes('getElementById') || trimmed.includes('querySelector')) {
+    explanation = `Queries the live DOM tree to locate the targeted HTML element and caches its reference for UI manipulation.`;
   } else if (trimmed.includes('addEventListener')) {
-    explanation = `Attaches a click event listener to catch user keypad taps and trigger corresponding calculation updates.`;
+    const evMatch = trimmed.match(/addEventListener\(\s*['"]([a-zA-Z0-9_-]+)['"]/);
+    const ev = evMatch ? evMatch[1] : 'user';
+    explanation = `Registers an interactive '${ev}' event listener to trigger responsive logic on user interaction.`;
+  } else if (trimmed.includes('innerHTML =') || trimmed.includes('.innerHTML=')) {
+    explanation = `Clears or replaces DOM container markup to prepare for mounting freshly rendered cards or elements.`;
+  } else if (trimmed.includes('createElement')) {
+    const tagMatch = trimmed.match(/createElement\(\s*['"]([a-zA-Z0-9_-]+)['"]/);
+    const tag = tagMatch ? tagMatch[1] : 'element';
+    explanation = `Instantiates a new <${tag}> HTML element node in memory, prepared for population and DOM insertion.`;
+  } else if (trimmed.includes('appendChild')) {
+    explanation = `Mounts the dynamically constructed element node into the document tree, making it visible to the user.`;
+  } else if (trimmed.includes('classList.add') || trimmed.includes('classList.remove') || trimmed.includes('classList.toggle')) {
+    explanation = `Mutates DOM element CSS classes to update visual state and responsive styling dynamically.`;
+  } else if (trimmed.includes('.filter(')) {
+    explanation = `Applies predicate filtering across array records to isolate items matching search queries or categories.`;
+  } else if (trimmed.includes('.map(')) {
+    explanation = `Transforms array records into formatted values or interactive DOM elements.`;
+  } else if (trimmed.includes('.forEach(')) {
+    explanation = `Iterates sequentially across the collection to construct individual UI elements and attach event handlers.`;
+  } else if (trimmed.includes('toLowerCase().includes(') || trimmed.includes('includes(')) {
+    explanation = `Performs substring matching to verify whether the record matches active user query parameters.`;
+  } else if (trimmed.includes('const ') && trimmed.includes('= [')) {
+    explanation = `Initializes an in-memory data collection array holding catalog records for UI rendering and filtering.`;
+  } else if (trimmed.includes('{ id:') || trimmed.includes('category:') || trimmed.includes('price:') || trimmed.includes('name:')) {
+    explanation = `Defines a structured record object containing entity attributes (identifier, name, price, category).`;
   } else if (trimmed.includes('display: grid') || trimmed.includes('grid-template-columns')) {
-    explanation = `Establishes a 2D CSS Grid formatting context so buttons arrange into structured keypad rows and columns.`;
+    explanation = `Establishes a 2D CSS Grid formatting context so child elements arrange into structured rows and columns.`;
   } else if (trimmed.includes('gap:')) {
-    explanation = `Sets uniform spacing between keypad buttons without requiring complex margin calculations.`;
+    explanation = `Sets uniform spacing gutters between layout items without requiring outer margin hacks.`;
   } else if (trimmed.includes('switch')) {
     explanation = `Evaluates the operator and branches directly to matching case conditions for rapid O(1) execution.`;
   } else if (trimmed.includes('case')) {
-    explanation = `Branch target: executes arithmetic operation if the operator matches this symbol.`;
+    explanation = `Branch target: executes operation block if the active value matches this symbol.`;
   } else if (trimmed.includes('std::nan') || trimmed.includes('Double.NaN') || trimmed.includes('float("nan")')) {
     explanation = `Defensive guard against division by zero: returns Not-a-Number (NaN) without crashing the program.`;
   } else if (trimmed.includes('return')) {
-    explanation = `Exits the function immediately and passes the computed calculation result back to the caller.`;
-  } else if (trimmed.includes('def calculate') || trimmed.includes('double calculate') || trimmed.includes('function calculate')) {
-    explanation = `Defines the primary arithmetic calculation function with strict parameter signatures and return types.`;
+    explanation = `Exits the function immediately and passes the computed output result back to the caller.`;
+  } else if (trimmed.includes('def ') || trimmed.includes('function ') || (trimmed.includes('const ') && trimmed.includes('=>'))) {
+    explanation = `Defines an execution routine with explicit parameter signatures and scoped algorithmic logic.`;
   } else {
-    const firstWord = syllables[0]?.text || 'statement';
-    explanation = `Executes instruction resolving '${firstWord}' within the active ${language} execution flow.`;
+    const firstWord = syllables[0]?.text || 'instruction';
+    explanation = `Declares and coordinates '${firstWord}' to manage application state and drive ${language} runtime execution.`;
   }
 
   return {

@@ -1412,10 +1412,12 @@ Type your code or ask any questions about this file!`
                   <span className="font-mono text-xs font-bold text-[#1c1917]">{activeFile?.name || 'app.js'}</span>
                   <span className="text-[10px] font-mono text-[#78716c]">{activeFile?.language}</span>
                 </div>
-                <div className="flex-1 p-2">
+                <div className="flex-1 p-2 min-h-0">
                   <CodeEditor
                     activeFile={activeFile}
                     onCodeChange={handleFileContentChange}
+                    onOpenFloatingCard={(cardData) => setActiveFloatingCard(cardData)}
+                    projectName={project.name}
                   />
                 </div>
               </div>

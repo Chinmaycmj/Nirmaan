@@ -256,7 +256,125 @@ export function detectEnclosingCodeBlock(
     };
   }
 
-  // 5. HTML Landmark or Tag Block
+  // 5. DOM Event Listener Scope Detection (e.g. searchInput.addEventListener('input', (e) => { ... }))
+  let eventStart = -1;
+  let eventElement = '';
+  let eventType = '';
+  for (let i = targetLineIndex; i >= 0; i--) {
+    const cur = lines[i].trim();
+    const evMatch = cur.match(/([a-zA-Z0-9_$]+)\.addEventListener\(\s*['"]([a-zA-Z0-9_-]+)['"]/);
+    if (evMatch) {
+      eventStart = i;
+      eventElement = evMatch[1];
+      eventType = evMatch[2];
+      break;
+    }
+  }
+
+  if (eventStart !== -1) {
+    let braceCount = 0;
+    let foundFirstBrace = false;
+    let eventEnd = targetLineIndex;
+
+    for (let i = eventStart; i < total; i++) {
+      const cur = lines[i];
+      for (const char of cur) {
+        if (char === '{') {
+          braceCount++;
+          foundFirstBrace = true;
+        } else if (char === '}') {
+          braceCount--;
+        }
+      }
+      if (foundFirstBrace && braceCount <= 0) {
+        eventEnd = i;
+        break;
+      }
+      if (cur.includes('});')) {
+        eventEnd = i;
+        break;
+      }
+    }
+
+    if (targetLineIndex <= eventEnd) {
+      const blockLines = lines.slice(eventStart, eventEnd + 1);
+      return {
+        blockType: 'control_flow',
+        blockName: `Event Listener: ${eventElement}.addEventListener("${eventType}")`,
+        startLine: eventStart + 1,
+        endLine: eventEnd + 1,
+        codeSnippet: blockLines.join('\n'),
+        siblingTokensOrProperties: blockLines.slice(1).map(l => l.trim()).filter(Boolean).slice(0, 5),
+        surroundingSummary: `Interactive event scope: Listens for user "${eventType}" events on ${eventElement}, executing dynamic filtering and UI card updates in real-time.`,
+      };
+    }
+  }
+
+  // 6. Dataset Array or Object Collection Scope (e.g. const initialItems = [ ... ])
+  let collectionStart = -1;
+  let collectionName = '';
+  for (let i = targetLineIndex; i >= 0; i--) {
+    const cur = lines[i].trim();
+    const arrMatch = cur.match(/(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*\[/);
+    if (arrMatch) {
+      collectionStart = i;
+      collectionName = arrMatch[1];
+      break;
+    }
+  }
+
+  if (collectionStart !== -1) {
+    let bracketCount = 0;
+    let foundFirstBracket = false;
+    let collectionEnd = targetLineIndex;
+
+    for (let i = collectionStart; i < total; i++) {
+      const cur = lines[i];
+      for (const char of cur) {
+        if (char === '[') {
+          bracketCount++;
+          foundFirstBracket = true;
+        } else if (char === ']') {
+          bracketCount--;
+        }
+      }
+      if (foundFirstBracket && bracketCount <= 0) {
+        collectionEnd = i;
+        break;
+      }
+    }
+
+    if (targetLineIndex <= collectionEnd) {
+      const blockLines = lines.slice(collectionStart, collectionEnd + 1);
+      return {
+        blockType: 'control_flow',
+        blockName: `Dataset Array: const ${collectionName} = [...]`,
+        startLine: collectionStart + 1,
+        endLine: collectionEnd + 1,
+        codeSnippet: blockLines.join('\n'),
+        siblingTokensOrProperties: blockLines.slice(1).map(l => l.trim()).filter(Boolean).slice(0, 5),
+        surroundingSummary: `Core application dataset: "${collectionName}" defines the foundational data records (with id, name, price, category) powering card rendering and search filtering.`,
+      };
+    }
+  }
+
+  // 7. DOM Query & Variable Binding (e.g. const cardGrid = document.getElementById('cardGrid');)
+  const domMatch = line.match(/(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*document\.(?:getElementById|querySelector)\(\s*['"]([^'"]+)['"]\)/);
+  if (domMatch) {
+    const varName = domMatch[1];
+    const targetId = domMatch[2];
+    return {
+      blockType: 'control_flow',
+      blockName: `DOM Element Binding: ${varName} (#${targetId})`,
+      startLine: targetLineIndex + 1,
+      endLine: targetLineIndex + 1,
+      codeSnippet: line.trim(),
+      siblingTokensOrProperties: [line.trim()],
+      surroundingSummary: `DOM binding: Caches a direct memory pointer to the #${targetId} HTML node in '${varName}' for high-performance UI card insertion and clearing.`,
+    };
+  }
+
+  // 8. HTML Landmark or Tag Block
   if (line.includes('<') && line.includes('>')) {
     const tagMatch = line.match(/<([a-zA-Z0-9_-]+)/);
     const tag = tagMatch ? tagMatch[1] : 'element';
@@ -370,7 +488,25 @@ export function analyzeTokenInBlockContext(
     rippleEffect = `Modifying '${cleanToken}' alters computational logic, potentially leading to off-by-one errors, invalid return values, or unhandled runtime exceptions.`;
   }
 
-  // Case D: Universal Default
+  // Case D: Dataset Arrays & Collections (e.g. const initialItems = [...])
+  else if (enclosingBlock.blockName.includes('Dataset Array')) {
+    howTokenPowersBlock = `Inside ${enclosingBlock.blockName}, '${cleanToken}' defines ${baseAnalysis.role}. Coordinates with sibling attributes (${siblingTokens.slice(0, 3).join(', ') || 'record fields'}) to build structured entity objects that supply data for card rendering, search filtering, and application state.`;
+    rippleEffect = `Altering '${cleanToken}' modifies the schema of this catalog item, directly impacting rendered card values, search query matching, or arithmetic pricing.`;
+  }
+
+  // Case E: DOM Event Listeners (e.g. searchInput.addEventListener('input', ...))
+  else if (enclosingBlock.blockName.includes('Event Listener')) {
+    howTokenPowersBlock = `Inside ${enclosingBlock.blockName}, '${cleanToken}' manages event interception and reactive UI updates. Works with (${siblingTokens.slice(0, 3).join(', ')}) to respond to live user interactions in real time.`;
+    rippleEffect = `Removing or breaking '${cleanToken}' suppresses event dispatch or handler execution, preventing user keystrokes/taps from refreshing the UI view.`;
+  }
+
+  // Case F: DOM Element Bindings (e.g. const cardGrid = document.getElementById('cardGrid'))
+  else if (enclosingBlock.blockName.includes('DOM Element Binding')) {
+    howTokenPowersBlock = `Inside ${enclosingBlock.blockName}, '${cleanToken}' binds the live document element into a cached script variable. Enables fast subsequent DOM mutations without repetitive query overhead.`;
+    rippleEffect = `Mismatched IDs or typos in '${cleanToken}' cause DOM selection to return null, triggering fatal 'Cannot set properties of null' errors during subsequent rendering.`;
+  }
+
+  // Case G: Universal Default
   else {
     howTokenPowersBlock = `Inside ${enclosingBlock.blockName}, '${cleanToken}' functions in lockstep with adjacent code statements (${siblingTokens.slice(0, 2).join(', ') || 'surrounding logic'}) to ensure cohesive execution.`;
     rippleEffect = `Removing '${cleanToken}' disrupts statement resolution in this scope window.`;

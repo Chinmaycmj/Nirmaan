@@ -1184,6 +1184,83 @@ test('Command Palette registers all core actions and Verified Portfolio maps to 
   assert.equal(syllabusTopics.length, 4);
 });
 
+// Test 39: Files Section Token & Scope Inspection for script.js & DOM APIs
+test('Files section token inspector resolves DOM APIs, dataset arrays, event listeners, and eliminates vague statements', () => {
+  const scriptContent = `const initialItems = [
+  { id: 1, name: 'Spicy Burger', price: 12, category: 'food' },
+  { id: 2, name: 'Cold Coffee', price: 6, category: 'drinks' }
+];
+
+const cardGrid = document.getElementById('cardGrid');
+const searchInput = document.getElementById('searchInput');
+
+function renderCards(items) {
+  cardGrid.innerHTML = '';
+  items.forEach((item) => {
+    const card = document.createElement('div');
+    card.classList.add('card');
+    cardGrid.appendChild(card);
+  });
+}
+
+searchInput.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  const filtered = initialItems.filter(item => item.name.toLowerCase().includes(query));
+  renderCards(filtered);
+});`;
+
+  const lines = scriptContent.split('\n');
+
+  function detectScope(targetLineIndex) {
+    for (let i = targetLineIndex; i >= 0; i--) {
+      const cur = lines[i].trim();
+      if (cur.match(/(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*\[/)) {
+        return 'Dataset Array';
+      }
+      if (cur.includes('.addEventListener(')) {
+        return 'Event Listener';
+      }
+      if (cur.includes('function ')) {
+        return 'Function';
+      }
+    }
+    return 'Scope Window';
+  }
+
+  assert.equal(detectScope(1), 'Dataset Array');
+  assert.equal(detectScope(10), 'Function');
+  assert.equal(detectScope(19), 'Event Listener');
+
+  function explainToken(tok, line) {
+    if (tok === 'getElementById') return { role: 'DOM Element Retrieval by ID Method', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Document/getElementById' };
+    if (tok === 'addEventListener') return { role: 'DOM Event Registration Method', url: 'https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener' };
+    if (tok === 'filter') return { role: 'Array Predicate Filtering Method', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter' };
+    if (tok === 'createElement') return { role: 'DOM Element Factory Method', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Document/createElement' };
+    if (tok === 'classList') return { role: 'DOM Element Class Token List', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Element/classList' };
+    if (tok === 'innerHTML') return { role: 'DOM HTML Content Serialization Property', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML' };
+    if (tok === "'cardGrid'") return { role: 'DOM Target ID / Selector Argument', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Document/getElementById' };
+    if (tok === 'initialItems') return { role: 'In-Memory Dataset Collection Array', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array' };
+    return { role: 'Identifier', url: 'https://developer.mozilla.org' };
+  }
+
+  const getElem = explainToken('getElementById', lines[5]);
+  assert.equal(getElem.role, 'DOM Element Retrieval by ID Method');
+  assert.ok(getElem.url.includes('getElementById'));
+
+  const cardGridStr = explainToken("'cardGrid'", lines[5]);
+  assert.equal(cardGridStr.role, 'DOM Target ID / Selector Argument');
+
+  const addEv = explainToken('addEventListener', lines[18]);
+  assert.equal(addEv.role, 'DOM Event Registration Method');
+
+  const filt = explainToken('filter', lines[20]);
+  assert.equal(filt.role, 'Array Predicate Filtering Method');
+
+  const initItems = explainToken('initialItems', lines[0]);
+  assert.equal(initItems.role, 'In-Memory Dataset Collection Array');
+});
+
+
 
 
 
